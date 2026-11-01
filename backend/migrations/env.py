@@ -6,6 +6,8 @@ from sqlalchemy import pool
 from alembic import context
 from keepyourid.core.database import Base
 from keepyourid.modules.organizations.models import Organization
+from keepyourid.modules.dids.models import DID
+
 from keepyourid.config import get_settings
 
 # this is the Alembic Config object, which provides
