@@ -56,6 +56,6 @@ class Organization(Base):
         name="organization_status",
         values_callable=lambda enum: [item.value for item in enum],
     ),
-    default=OrganizationStatus.PENDING,
+    default=OrganizationStatus.ACTIVE,
     nullable=False,
 )
