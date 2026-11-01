@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     app_name: str = "KeepYourID"
     app_env: str = "development"
     debug: bool = False
+    database_url: str
     api_v1_prefix: str = "/api/v1"
 
     model_config = SettingsConfigDict(
@@ -14,8 +15,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
-
-
+    
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
