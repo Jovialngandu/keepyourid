@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from keepyourid.config import get_settings
 from keepyourid.modules.health.router import router as health_router
+from keepyourid.modules.organizations.router import router as organizations_router
 
 settings = get_settings()
 
@@ -16,6 +17,10 @@ app.include_router(
     prefix=settings.api_v1_prefix,
 )
 
+app.include_router(
+    organizations_router,
+    prefix=settings.api_v1_prefix,
+)
 
 @app.get("/")
 async def root() -> dict[str, str]:

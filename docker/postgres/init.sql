@@ -1,0 +1,2 @@
+-- Extensions PostgreSQL à ajouter uniquement lorsqu'elles sont nécessaires.
+-- Le MVP n'a actuellement besoin d'aucune extension supplémentaire.

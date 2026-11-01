@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: keepyourid_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keepyourid_db
+      POSTGRES_USER: keepyourid
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keepyourid_dev}
+    ports:
+      - "5434:5432"
+    volumes:
+      - keepyourid_pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keepyourid -d keepyourid_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  keepyourid_pgdata:
