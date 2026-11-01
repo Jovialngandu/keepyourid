@@ -15,7 +15,7 @@ httptools==0.9.0
 httpx==0.28.1
 idna==3.20
 iniconfig==2.3.1
--e git+https://github.com/Jovialngandu/keepyourid.git@ff1a0ed02b01087740bd82924786cbb5aa3b4e21#egg=keepyourid_backend&subdirectory=backend
+-e git+https://github.com/Jovialngandu/keepyourid.git@9c1e7c3c2b76b208cedc538bc122d11acb0e0bf4#egg=keepyourid_backend&subdirectory=backend
 Mako==1.4.3
 MarkupSafe==3.0.4
 opentelemetry-api==1.45.2
