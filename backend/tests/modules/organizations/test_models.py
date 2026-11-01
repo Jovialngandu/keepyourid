@@ -21,7 +21,7 @@ def test_organization_creation(db_session):
 
     assert isinstance(organization.id, UUID)
     assert organization.legal_name == "Université de Kinshasa"
-    assert organization.status == OrganizationStatus.PENDING
+    assert organization.status == OrganizationStatus.ACTIVE
     assert organization.created_at is not None
     assert organization.updated_at is not None
 
