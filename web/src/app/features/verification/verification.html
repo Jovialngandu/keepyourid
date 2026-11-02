@@ -1,0 +1,20 @@
+<section class="portal-page narrow">
+  <div class="eyebrow">VÉRIFICATION INDÉPENDANTE</div>
+  <h1>La confiance<br />se vérifie.</h1>
+  <p>Contrôler une preuve demande plusieurs vérifications distinctes.</p>
+  <div class="notice">
+    <strong>Service de vérification en préparation</strong>
+    <p>
+      Le moteur n’expose pas encore d’API de vérification de credentials. Aucun document n’est
+      transmis ni déclaré valide depuis cet écran.
+    </p>
+  </div>
+  <div class="checks">
+    @for (check of checks; track check) {
+      <article>
+        <span class="badge">Non effectué</span>
+        <h2>{{ check }}</h2>
+      </article>
+    }
+  </div>
+</section>
