@@ -100,6 +100,11 @@ class EthereumAdapter:
 			tx_hash,
 			timeout=self.config.tx_timeout,
 		)
+  
+		if receipt["status"] != 1:
+			raise RuntimeError(
+				f"Blockchain transaction failed: {tx_hash.hex()}"
+			)
 
 		return {
 			"transaction_hash": tx_hash.hex(),
