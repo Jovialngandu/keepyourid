@@ -1,0 +1,12 @@
+<form class="context-form" (ngSubmit)="select($event)">
+  <label
+    >Identifiant de l’organisation<input
+      [formControl]="id"
+      [readOnly]="locked()"
+      placeholder="UUID de votre organisation"
+      autocomplete="off" /></label
+  ><button class="button secondary" [disabled]="id.invalid || locked()">Charger l’organisation →</button>
+</form>
+@if (id.touched && id.invalid) {
+  <p class="error" role="alert">Saisissez un identifiant UUID valide.</p>
+}

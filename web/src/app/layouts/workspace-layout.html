@@ -1,0 +1,21 @@
+<div class="workspace">
+  <aside>
+    <a class="brand" routerLink="/"><span class="brand-mark">K</span>KeepYourID.</a
+    ><span class="eyebrow">ESPACE ORGANISATION</span>
+    <nav aria-label="Espace de travail">
+      <a routerLink="/issuer/dashboard" routerLinkActive="active">◈ &nbsp; Vue d’ensemble</a
+      ><a routerLink="/issuer/did" routerLinkActive="active">◇ &nbsp; Identité DID</a
+      ><a routerLink="/issuer/credentials" routerLinkActive="active">▤ &nbsp; Justificatifs</a
+      ><a routerLink="/issuer/issue" routerLinkActive="active">＋ &nbsp; Nouveau justificatif</a
+      ><a routerLink="/verifier" routerLinkActive="active">✓ &nbsp; Vérification</a
+      ><a routerLink="/admin" routerLinkActive="active">⚙ &nbsp; État des services</a>
+    </nav>
+    <a routerLink="/">← Retour au site</a>
+  </aside>
+  <div class="workspace-content">
+    <header class="workspace-header">
+      <span>PORTAIL D’INTÉGRATION</span><span class="badge">Développement local</span>
+    </header>
+    <main id="main"><router-outlet /></main>
+  </div>
+</div>
