@@ -20,6 +20,11 @@ from keepyourid.modules.credentials.cryptography.jws import (
 	JWSVerificationError,
 )
 
+from keepyourid.modules.credentials.cryptography.issuer_keys import (
+	IssuerKeyResolver,
+	IssuerKeyError,
+)
+
 class CredentialOrganizationNotFoundError(Exception):
 	pass
 
@@ -154,6 +159,31 @@ class CredentialService:
 		organization_id: UUID,
 	) -> list[VerifiableCredential]:
 		return self.repository.list_by_organization(organization_id)
+
+	def _get_issuer_key_id(
+		self,
+		credential: VerifiableCredential,
+	) -> str:
+		try:
+			key_id, _ = IssuerKeyResolver(self.session).resolve(
+				credential
+			)
+			return key_id
+		except IssuerKeyError as exc:
+			raise CredentialInvalidDataError(str(exc)) from exc
+
+
+	def _get_issuer_public_key(
+		self,
+		credential: VerifiableCredential,
+	) -> str:
+		try:
+			_, public_key = IssuerKeyResolver(self.session).resolve(
+				credential
+			)
+			return public_key
+		except IssuerKeyError as exc:
+			raise CredentialInvalidDataError(str(exc)) from exc
 	
 	def prepare_issuance(self, credential_id: UUID):
 		credential = self.get(credential_id)
@@ -218,9 +248,10 @@ class CredentialService:
 				public_key,
 				expected_key_id,
 			)
-
 		except JWSVerificationError as exc:
-			raise CredentialInvalidDataError(str(exc)) from exc
+			raise CredentialInvalidDataError(
+				f"Credential signature verification failed: {exc}"
+			) from exc
 
 		credential.signed_credential = signed_credential
 		credential.proof = {
@@ -236,5 +267,16 @@ class CredentialService:
 
 		return credential
 
-	
+	def get_issuer_signing_key(self, credential_id: UUID):
+		credential = self.get(credential_id)
+
+		if credential is None:
+			raise CredentialInvalidDataError("Credential not found.")
+
+		try:
+			return IssuerKeyResolver(self.session).resolve(credential)
+		except IssuerKeyError as exc:
+			raise CredentialInvalidDataError(str(exc)) from exc
+
+
 	

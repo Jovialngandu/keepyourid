@@ -49,8 +49,25 @@ class CredentialSigningRequest(BaseModel):
     key_id: str
 
 
+# class CredentialIssuanceResponse(BaseModel):
+#     credential_id: UUID
+#     status: CredentialStatus
+#     signed_credential: str
+
+
+class CredentialIssuancePreparationResponse(BaseModel):
+    signing_input: str
+    key_id: str
+
+
+class CredentialIssuanceCompletion(BaseModel):
+    signature: str = Field(min_length=1)
+    key_id: str = Field(min_length=1)
+
+
 class CredentialIssuanceResponse(BaseModel):
-    credential_id: UUID
+    id: UUID
+    credential_id: str
     status: CredentialStatus
     signed_credential: str
-
+    proof: dict
