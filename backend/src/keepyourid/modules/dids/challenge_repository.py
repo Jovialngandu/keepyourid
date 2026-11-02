@@ -28,6 +28,8 @@ class DIDChallengeRepository:
         purpose: str,
         domain: str,
     ) -> DIDChallenge | None:
+        now = datetime.now(timezone.utc)
+
         stmt = (
             update(DIDChallenge)
             .where(DIDChallenge.id == challenge_id)
@@ -35,11 +37,19 @@ class DIDChallengeRepository:
             .where(DIDChallenge.purpose == purpose)
             .where(DIDChallenge.domain == domain)
             .where(DIDChallenge.consumed_at.is_(None))
-            .where(DIDChallenge.expires_at > datetime.now(timezone.utc))
-            .values(consumed_at=datetime.now(timezone.utc))
+            .where(DIDChallenge.expires_at > now)
+            .values(consumed_at=now)
+            .returning(DIDChallenge.id)
         )
 
-        self.session.execute(stmt)
-        self.session.commit()
+        consumed_id = self.session.execute(stmt).scalar_one_or_none()
 
-        return self.session.get(DIDChallenge, challenge_id)
+        if consumed_id is None:
+            return None
+
+        challenge = self.session.get(DIDChallenge, consumed_id)
+
+        if challenge is not None:
+            self.session.refresh(challenge)
+
+        return challenge
