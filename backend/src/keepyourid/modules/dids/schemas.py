@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from uuid import UUID
 
@@ -28,11 +27,6 @@ class DIDChallengeCreate(BaseModel):
     domain: str = Field(min_length=1, max_length=255)
 
 
-class DIDChallengeConsume(BaseModel):
-    purpose: str = Field(min_length=1, max_length=100)
-    domain: str = Field(min_length=1, max_length=255)
-
-
 class DIDChallengeResponse(BaseModel):
     challenge_id: UUID
     challenge: str
@@ -40,10 +34,19 @@ class DIDChallengeResponse(BaseModel):
     domain: str
     issued_at: datetime
     expires_at: datetime
+    message: str
 
 
 class DIDProofSubmission(BaseModel):
     challenge_id: UUID
     verification_method: str = Field(min_length=1, max_length=500)
-    signature: str = Field(min_length=1)
+    signature: str = Field(pattern=r"^0x[0-9a-fA-F]+$")
 
+
+class DIDVerificationResponse(BaseModel):
+    did_id: UUID
+    identifier: str
+    status: str
+    verification_method: str
+    signer_address: str
+    verified_at: datetime
