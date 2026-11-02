@@ -2,13 +2,13 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Enum
 
-from keepyourid.modules.dids.enums import DIDStatus
 from keepyourid.core.database import Base
+from keepyourid.modules.dids.enums import DIDStatus
 
 
 class DID(Base):
