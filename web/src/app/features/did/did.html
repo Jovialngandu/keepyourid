@@ -1,0 +1,75 @@
+<section class="portal-page narrow">
+  <div class="eyebrow">IDENTITÉ DÉCENTRALISÉE</div>
+  <h1>Votre identité d’émetteur.</h1>
+  <p>
+    Associez un DID à votre organisation, puis démontrez le contrôle de sa clé d’authentification.
+  </p>
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p class="notice" role="status">{{ message() }}</p>
+  }
+  <section class="detail-card">
+    <h2>01. Enregistrer le DID</h2>
+    <form [formGroup]="registration" (ngSubmit)="register()">
+      <label
+        >Organisation<input formControlName="organization" placeholder="UUID de l’organisation"
+      /></label>
+      <label
+        >Identifiant DID<input formControlName="identifier" placeholder="did:ethr:sepolia:0x…"
+      /></label>
+      <label
+        >Document DID (JSON)<textarea
+          formControlName="document"
+          rows="6"
+          spellcheck="false"
+        ></textarea>
+      </label>
+      <button class="button" [disabled]="registration.invalid || busy()">
+        Enregistrer le DID →
+      </button>
+    </form>
+  </section>
+  <section class="detail-card">
+    <h2>02. Prouver le contrôle</h2>
+    <form [formGroup]="authentication" (ngSubmit)="challenge()">
+      <label
+        >Identifiant du DID en base<input
+          formControlName="did"
+          placeholder="UUID retourné à l’enregistrement"
+      /></label>
+      <label>Domaine<input formControlName="domain" placeholder="keepyourid.local" /></label>
+      <button class="button secondary" [disabled]="authentication.invalid || busy()">
+        Demander un challenge →
+      </button>
+    </form>
+    @if (proof(); as p) {
+      <label
+        >Message à signer dans votre outil externe<textarea
+          readonly
+          rows="9"
+          [value]="p.message"
+        ></textarea>
+      </label>
+      <p class="field-help">Expiration : {{ p.expires_at }}</p>
+      <form [formGroup]="signature" (ngSubmit)="verify()">
+        <label
+          >Méthode de vérification<input
+            formControlName="verification_method"
+            placeholder="did:ethr:sepolia:0x…#controller"
+        /></label>
+        <label
+          >Signature Ethereum<textarea
+            formControlName="signature"
+            placeholder="0x…"
+            rows="3"
+          ></textarea>
+        </label>
+        <button class="button" [disabled]="signature.invalid || busy()">
+          Vérifier le contrôle →
+        </button>
+      </form>
+    }
+  </section>
+</section>
