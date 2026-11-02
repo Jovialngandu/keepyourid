@@ -13,6 +13,14 @@ from keepyourid.modules.dids.service import (
     OrganizationNotFoundError,
 )
 
+from keepyourid.modules.dids.challenge_service import (
+    DIDChallengeService,
+    DIDNotFoundError,
+)
+from keepyourid.modules.dids.schemas import DIDChallengeResponse
+
+
+
 router = APIRouter(prefix="/dids", tags=["DIDs"])
 
 
@@ -48,3 +56,25 @@ def register_did(
             status_code=409,
             detail=str(exc),
         ) from exc
+
+
+@router.post(
+    "/{did_id}/challenges",
+    response_model=DIDChallengeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_did_challenge(
+    did_id: UUID,
+    db: Session = Depends(get_db),
+):
+    try:
+        challenge = DIDChallengeService(db).create(did_id)
+
+        return DIDChallengeResponse(
+            challenge_id=challenge.id,
+            challenge=challenge.challenge,
+            expires_at=challenge.expires_at,
+        )
+
+    except DIDNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

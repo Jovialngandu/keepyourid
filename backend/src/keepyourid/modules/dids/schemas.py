@@ -21,3 +21,16 @@ class DIDResponse(BaseModel):
     document: dict
     created_at: datetime
     updated_at: datetime
+    
+    
+class DIDChallengeResponse(BaseModel):
+    challenge_id: UUID
+    challenge: str
+    expires_at: datetime
+
+
+class DIDProofSubmission(BaseModel):
+    challenge_id: UUID
+    verification_method: str = Field(min_length=1, max_length=500)
+    signature: str = Field(min_length=1)
+
