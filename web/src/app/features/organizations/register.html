@@ -1,0 +1,49 @@
+<section class="auth-page">
+  <div class="eyebrow">REJOINDRE L’ÉCOSYSTÈME</div>
+  <h1>Votre organisation.<br />De nouvelles possibilités.</h1>
+  <p>Enregistrez votre organisation pour préparer votre identité numérique.</p>
+  @if (result()) {
+    <div class="notice" role="status">
+      <strong>Organisation enregistrée</strong>
+      <p>Conservez votre identifiant : {{ result() }}</p>
+      <p>
+        Cette inscription ne crée pas de session utilisateur et ne vaut pas autorisation d’émission.
+      </p>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label
+        >Raison sociale<input
+          formControlName="legal_name"
+          autocomplete="organization"
+          maxlength="255" /></label
+      ><label
+        >Numéro d’enregistrement<input
+          formControlName="registration_number"
+          maxlength="100" /></label
+      ><label
+        >Adresse e-mail professionnelle<input
+          formControlName="email"
+          type="email"
+          autocomplete="email" /></label
+      ><label
+        >Téléphone (facultatif)<input
+          formControlName="phone"
+          type="tel"
+          autocomplete="tel"
+          maxlength="30"
+      /></label>
+      @if (form.touched && form.invalid) {
+        <p class="error" role="alert">
+          Renseignez la raison sociale, le numéro d’enregistrement et une adresse e-mail valide.
+        </p>
+      }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <button class="button" [disabled]="busy()">
+        {{ busy() ? 'Enregistrement…' : 'Inscrire mon organisation →' }}
+      </button>
+    </form>
+  }
+</section>
