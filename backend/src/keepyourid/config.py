@@ -16,6 +16,12 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     
+        # Blockchain
+    blockchain_rpc_url: str | None = None
+    blockchain_chain_id: int | None = None
+    issuer_registry_address: str | None = None
+    blockchain_tx_timeout: int = 120
+    
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
