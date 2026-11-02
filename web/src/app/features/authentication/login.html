@@ -1,0 +1,19 @@
+<section class="auth-page">
+  <div class="eyebrow">VOTRE ESPACE KEEPYOURID</div>
+  <h1>Bienvenue dans<br />votre écosystème.</h1>
+  <p>Retrouvez vos outils d’émission et de vérification au même endroit.</p>
+  <div class="notice">
+    <strong>La connexion sera bientôt disponible.</strong>
+    <p>
+      La gestion des comptes et des sessions est en cours de préparation. Aucun compte de
+      démonstration ne donne accès à vos données.
+    </p>
+  </div>
+  @if (config.workspaceEnabled) {
+    <a class="button" routerLink="/issuer/dashboard">Ouvrir l’espace d’intégration local →</a>
+    <p class="muted">
+      Environnement de développement sans authentification. Ne pas exposer publiquement.
+    </p>
+  }
+  <a class="text-link" routerLink="/register">Inscrire une organisation →</a>
+</section>
