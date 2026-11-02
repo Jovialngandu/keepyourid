@@ -24,12 +24,16 @@ def test_create_and_get_challenge(db_session):
     db_session.add(did)
     db_session.commit()
 
+    issued_at = __import__("datetime").datetime.now(
+        __import__("datetime").timezone.utc
+    )
     challenge = DIDChallenge(
         did_id=did.id,
         challenge=f"challenge-{uuid4().hex}",
-        expires_at=__import__("datetime").datetime.now(
-            __import__("datetime").timezone.utc
-        ),
+        purpose="did_authentication",
+        domain="keepyourid.local",
+        issued_at=issued_at,
+        expires_at=issued_at + __import__("datetime").timedelta(minutes=5),
     )
 
     repository = DIDChallengeRepository(db_session)
