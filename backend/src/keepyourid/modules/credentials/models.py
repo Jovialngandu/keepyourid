@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -89,3 +89,8 @@ class VerifiableCredential(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    
+    signed_credential: Mapped[str | None] = mapped_column(
+    Text,
+    nullable=True,
+)
