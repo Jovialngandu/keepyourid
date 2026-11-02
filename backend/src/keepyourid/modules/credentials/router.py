@@ -19,10 +19,16 @@ from keepyourid.modules.credentials.service import (
     CredentialService,
 )
 
-
 from keepyourid.modules.credentials.schemas import (
     CredentialSigningRequest,
     CredentialIssuanceRequest,
+)
+
+
+from keepyourid.modules.credentials.schemas import (
+    CredentialIssuancePreparationResponse,
+    CredentialIssuanceCompletion,
+    CredentialIssuanceResponse,
 )
 
 router = APIRouter(
@@ -173,3 +179,72 @@ def issue_credential(
         )
     except CredentialInvalidDataError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{credential_id}/prepare-issuance",
+    response_model=CredentialIssuancePreparationResponse,
+)
+def prepare_credential_issuance(
+    organization_id: UUID,
+    credential_id: UUID,
+    db: Session = Depends(get_db),
+):
+    service = CredentialService(db)
+
+    credential = service.get(credential_id)
+
+    if (
+        credential is None
+        or credential.organization_id != organization_id
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail="Credential not found.",
+        )
+
+    try:
+        return service.prepare_issuance(credential_id)
+
+    except CredentialInvalidDataError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/{credential_id}/complete-issuance",
+    response_model=CredentialIssuanceResponse,
+)
+def complete_credential_issuance(
+    organization_id: UUID,
+    credential_id: UUID,
+    data: CredentialIssuanceCompletion,
+    db: Session = Depends(get_db),
+):
+    service = CredentialService(db)
+
+    credential = service.get(credential_id)
+
+    if (
+        credential is None
+        or credential.organization_id != organization_id
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail="Credential not found.",
+        )
+
+    try:
+        return service.complete_issuance(
+            credential_id=credential_id,
+            signature=data.signature,
+            key_id=data.key_id,
+        )
+
+    except CredentialInvalidDataError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
