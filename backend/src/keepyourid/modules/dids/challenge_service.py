@@ -113,6 +113,7 @@ class DIDChallengeService:
 
         return challenge
 
+
     def consume_challenge(
         self,
         challenge_id: UUID,
@@ -125,7 +126,7 @@ class DIDChallengeService:
             domain,
         )
 
-        challenge = self.validate_challenge(
+        self.validate_challenge(
             challenge_id,
             did_id=did_id,
             purpose=normalized_purpose,
@@ -141,16 +142,21 @@ class DIDChallengeService:
 
         if consumed is None:
             refreshed = self.repository.get_by_id(challenge_id)
+
             if refreshed is None:
                 raise DIDNotFoundError("Challenge not found.")
+
             if refreshed.consumed_at is not None:
                 raise DIDChallengeAlreadyConsumedError(
                     "Challenge has already been consumed."
                 )
+
             if refreshed.expires_at <= datetime.now(timezone.utc):
                 raise DIDChallengeExpiredError("Challenge has expired.")
+
             raise DIDChallengeWrongContextError(
                 "Challenge cannot be consumed with the provided context."
             )
 
         return consumed
+
