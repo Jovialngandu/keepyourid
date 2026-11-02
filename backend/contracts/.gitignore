@@ -1,0 +1,12 @@
+# Foundry generated files
+cache/
+out/
+foundry.lock
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Temporary files
+broadcast/
