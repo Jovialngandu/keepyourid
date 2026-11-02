@@ -1,0 +1,23 @@
+<section class="portal-page narrow">
+  <div class="eyebrow">SUPERVISION</div>
+  <h1>État des services.</h1>
+  <p>Contrôlez la disponibilité de l’API KeepYourID.</p>
+  <article class="detail-card">
+    <h2>API backend</h2>
+    <p role="status">{{ status() }}</p>
+    <button class="button secondary" [disabled]="busy()" (click)="check()">
+      {{ busy() ? 'Vérification…' : 'Actualiser l’état' }}
+    </button>
+    <p class="muted">
+      Ce contrôle confirme une réponse HTTP de l’application. Il ne vérifie ni PostgreSQL ni la
+      blockchain.
+    </p>
+  </article>
+  <div class="notice">
+    <h2>Administration en préparation</h2>
+    <p>
+      La gestion des comptes, organisations, registrars et transactions sera disponible lorsque les
+      API et permissions correspondantes seront exposées.
+    </p>
+  </div>
+</section>
