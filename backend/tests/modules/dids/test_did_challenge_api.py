@@ -2,8 +2,8 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from keepyourid.main import app
 from keepyourid.core.dependencies import get_db
+from keepyourid.main import app
 
 
 def test_create_did_challenge_api(db_session):
