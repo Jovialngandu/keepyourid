@@ -14,11 +14,18 @@ from keepyourid.modules.dids.service import (
 )
 
 from keepyourid.modules.dids.challenge_service import (
+    DIDChallengeAlreadyConsumedError,
+    DIDChallengeExpiredError,
     DIDChallengeService,
+    DIDChallengeWrongContextError,
+    DIDChallengeWrongDIDError,
     DIDNotFoundError,
 )
-from keepyourid.modules.dids.schemas import DIDChallengeResponse
-
+from keepyourid.modules.dids.schemas import (
+    DIDChallengeConsume,
+    DIDChallengeCreate,
+    DIDChallengeResponse,
+)
 
 
 router = APIRouter(prefix="/dids", tags=["DIDs"])
@@ -65,16 +72,66 @@ def register_did(
 )
 def create_did_challenge(
     did_id: UUID,
+    data: DIDChallengeCreate,
     db: Session = Depends(get_db),
 ):
     try:
-        challenge = DIDChallengeService(db).create(did_id)
+        challenge = DIDChallengeService(db).create_challenge(
+            did_id,
+            purpose=data.purpose,
+            domain=data.domain,
+        )
 
         return DIDChallengeResponse(
             challenge_id=challenge.id,
             challenge=challenge.challenge,
+            purpose=challenge.purpose,
+            domain=challenge.domain,
+            issued_at=challenge.issued_at,
             expires_at=challenge.expires_at,
         )
 
     except DIDNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except DIDChallengeWrongContextError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{did_id}/challenges/{challenge_id}/consume",
+    response_model=DIDChallengeResponse,
+    status_code=status.HTTP_200_OK,
+)
+def consume_did_challenge(
+    did_id: UUID,
+    challenge_id: UUID,
+    data: DIDChallengeConsume,
+    db: Session = Depends(get_db),
+):
+    try:
+        challenge = DIDChallengeService(db).consume_challenge(
+            challenge_id,
+            did_id,
+            purpose=data.purpose,
+            domain=data.domain,
+        )
+
+        return DIDChallengeResponse(
+            challenge_id=challenge.id,
+            challenge=challenge.challenge,
+            purpose=challenge.purpose,
+            domain=challenge.domain,
+            issued_at=challenge.issued_at,
+            expires_at=challenge.expires_at,
+        )
+
+    except DIDNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except DIDChallengeWrongDIDError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except DIDChallengeWrongContextError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except DIDChallengeAlreadyConsumedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except DIDChallengeExpiredError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc

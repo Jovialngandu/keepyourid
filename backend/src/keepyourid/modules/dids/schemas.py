@@ -21,11 +21,24 @@ class DIDResponse(BaseModel):
     document: dict
     created_at: datetime
     updated_at: datetime
-    
-    
+
+
+class DIDChallengeCreate(BaseModel):
+    purpose: str = Field(min_length=1, max_length=100)
+    domain: str = Field(min_length=1, max_length=255)
+
+
+class DIDChallengeConsume(BaseModel):
+    purpose: str = Field(min_length=1, max_length=100)
+    domain: str = Field(min_length=1, max_length=255)
+
+
 class DIDChallengeResponse(BaseModel):
     challenge_id: UUID
     challenge: str
+    purpose: str
+    domain: str
+    issued_at: datetime
     expires_at: datetime
 
 
