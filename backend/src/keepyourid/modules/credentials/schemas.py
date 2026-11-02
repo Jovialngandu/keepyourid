@@ -63,11 +63,10 @@ class CredentialIssuancePreparationResponse(BaseModel):
 class CredentialIssuanceCompletion(BaseModel):
     signature: str = Field(min_length=1)
     key_id: str = Field(min_length=1)
-
-
+    
 class CredentialIssuanceResponse(BaseModel):
     id: UUID
     credential_id: str
     status: CredentialStatus
     signed_credential: str
-    proof: dict
+    proof: dict | None = None

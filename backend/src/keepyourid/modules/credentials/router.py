@@ -117,68 +117,15 @@ def get_credential(
     credential_id: UUID,
     service: CredentialService = Depends(get_credential_service),
 ):
-    credential = service.get(credential_id)
+    credential = service.get(credential_id, organization_id)
 
-    if (
-        credential is None
-        or credential.organization_id != organization_id
-    ):
+    if credential is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Credential not found.",
         )
 
     return credential
-
-
-
-
-@router.post("/{credential_id}/prepare-issuance")
-def prepare_issuance(
-    organization_id: UUID,
-    credential_id: UUID,
-    service: CredentialService = Depends(get_credential_service),
-):
-    credential = service.get(credential_id)
-
-    if (
-        credential is None
-        or credential.organization_id != organization_id
-    ):
-        raise HTTPException(status_code=404, detail="Credential not found.")
-
-    try:
-        return service.prepare_issuance(credential_id)
-    except CredentialInvalidDataError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-
-
-@router.post(
-    "/{credential_id}/issue",
-    response_model=CredentialResponse,
-)
-def issue_credential(
-    organization_id: UUID,
-    credential_id: UUID,
-    data: CredentialIssuanceRequest,
-    service: CredentialService = Depends(get_credential_service),
-):
-    credential = service.get(credential_id)
-
-    if (
-        credential is None
-        or credential.organization_id != organization_id
-    ):
-        raise HTTPException(status_code=404, detail="Credential not found.")
-
-    try:
-        return service.complete_issuance(
-            credential_id,
-            data.signature,
-            data.key_id,
-        )
-    except CredentialInvalidDataError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post(
@@ -188,27 +135,21 @@ def issue_credential(
 def prepare_credential_issuance(
     organization_id: UUID,
     credential_id: UUID,
-    db: Session = Depends(get_db),
+    service: CredentialService = Depends(get_credential_service),
 ):
-    service = CredentialService(db)
-
-    credential = service.get(credential_id)
-
-    if (
-        credential is None
-        or credential.organization_id != organization_id
-    ):
-        raise HTTPException(
-            status_code=404,
-            detail="Credential not found.",
-        )
-
     try:
-        return service.prepare_issuance(credential_id)
-
+        return service.prepare_issuance(
+            credential_id=credential_id,
+            organization_id=organization_id,
+        )
     except CredentialInvalidDataError as exc:
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if str(exc) == "Credential not found."
+            else status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
         raise HTTPException(
-            status_code=422,
+            status_code=status_code,
             detail=str(exc),
         ) from exc
 
@@ -221,30 +162,22 @@ def complete_credential_issuance(
     organization_id: UUID,
     credential_id: UUID,
     data: CredentialIssuanceCompletion,
-    db: Session = Depends(get_db),
+    service: CredentialService = Depends(get_credential_service),
 ):
-    service = CredentialService(db)
-
-    credential = service.get(credential_id)
-
-    if (
-        credential is None
-        or credential.organization_id != organization_id
-    ):
-        raise HTTPException(
-            status_code=404,
-            detail="Credential not found.",
-        )
-
     try:
         return service.complete_issuance(
             credential_id=credential_id,
             signature=data.signature,
             key_id=data.key_id,
+            organization_id=organization_id,
         )
-
     except CredentialInvalidDataError as exc:
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if str(exc) == "Credential not found."
+            else status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
         raise HTTPException(
-            status_code=422,
+            status_code=status_code,
             detail=str(exc),
         ) from exc
