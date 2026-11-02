@@ -4,18 +4,22 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from keepyourid.core.database import Base
-from keepyourid.modules.organizations.models import Organization
 from keepyourid.config import get_settings
+from keepyourid.core.database import Base
+from keepyourid.modules.dids.challenge_models import DIDChallenge
+from keepyourid.modules.dids.models import DID
+from keepyourid.modules.organizations.models import Organization
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_main_option(
-    "sqlalchemy.url",
-    get_settings().database_url.replace("%", "%%"),
-)
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option(
+        "sqlalchemy.url",
+        get_settings().database_url.replace("%", "%%"),
+    )
 
 target_metadata = Base.metadata
 
