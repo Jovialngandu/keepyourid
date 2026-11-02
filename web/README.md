@@ -1,6 +1,12 @@
 # KeepYourID — Frontend Angular
 
-Frontend local dans le dépôt principal. Angular 21 standalone, TypeScript strict, Router, formulaires réactifs, HttpClient et tests Vitest. Node 22.20 est compatible avec Angular 21 ; Angular 22 demande une version Node plus récente.
+Frontend local dans le dépôt principal. Angular 21 standalone, Tailwind CSS, TypeScript strict, Router, formulaires réactifs, HttpClient et tests Vitest. Node 22.20 est compatible avec Angular 21 ; Angular 22 demande une version Node plus récente.
+
+## Styles Tailwind
+
+Tailwind est intégré via le plugin officiel `@tailwindcss/postcss` dans `.postcssrc.json`. Les couleurs KeepYourID et les polices sont déclarées dans `@theme` dans `src/styles.css` : utiliser par exemple `bg-ink`, `text-muted`, `bg-brand` ou `font-heading` dans les templates.
+
+Les styles existants sont dans la couche `components`, ce qui permet aux classes utilitaires Tailwind de les surcharger. Les boutons, les groupes d’actions et les grilles utilisent aussi `@apply`. Le reset Preflight est volontairement omis pour conserver les styles de base et le rendu existant. Les imports `theme.css` et `utilities.css` permettent d’utiliser Tailwind sans ce reset. Référence : [installation Angular](https://tailwindcss.com/docs/installation/framework-guides/angular).
 
 ## Démarrer
 
