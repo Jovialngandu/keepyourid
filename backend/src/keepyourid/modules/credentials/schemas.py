@@ -36,3 +36,21 @@ class CredentialResponse(BaseModel):
     valid_until: datetime | None
     created_at: datetime
     updated_at: datetime
+    
+    
+
+class CredentialIssuanceRequest(BaseModel):
+    signature: str = Field(min_length=1)
+    key_id: str = Field(min_length=1, max_length=500)
+
+
+class CredentialSigningRequest(BaseModel):
+    signing_input: str
+    key_id: str
+
+
+class CredentialIssuanceResponse(BaseModel):
+    credential_id: UUID
+    status: CredentialStatus
+    signed_credential: str
+
