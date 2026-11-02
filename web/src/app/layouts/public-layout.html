@@ -1,0 +1,23 @@
+<header class="public-header">
+  <a class="brand" routerLink="/" aria-label="KeepYourID, accueil"
+    ><span class="brand-mark">K</span>KeepYourID<span class="brand-dot">.</span></a
+  >
+  <nav aria-label="Navigation principale">
+    <a routerLink="/how-it-works" routerLinkActive="active">Fonctionnement</a
+    ><a routerLink="/organizations" routerLinkActive="active">Organisations</a
+    ><a routerLink="/standards" routerLinkActive="active">Confiance & standards</a>
+  </nav>
+  <a class="button small" routerLink="/login"
+    >Accéder à la plateforme <span aria-hidden="true">↗</span></a
+  >
+</header>
+<main id="main"><router-outlet /></main>
+<footer>
+  <a class="brand" routerLink="/">KeepYourID.</a>
+  <p>Decentralized identity. Verifiable trust.</p>
+  <div>
+    <a routerLink="/about">À propos</a><a routerLink="/wallet">Wallet</a
+    ><a routerLink="/verification">Vérification</a><a routerLink="/contact">Contact</a>
+  </div>
+  <small>Projet en développement · Ethereum Sepolia</small>
+</footer>
