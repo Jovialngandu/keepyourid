@@ -4,7 +4,7 @@ from pathlib import Path
 
 def load_issuer_registry_abi() -> list[dict]:
     artifact_path = (
-        Path(__file__).resolve().parents[4]
+        Path(__file__).resolve().parents[3]
         / "contracts"
         / "out"
         / "IssuerRegistry.sol"
