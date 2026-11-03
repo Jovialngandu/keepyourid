@@ -125,3 +125,17 @@ class OrganizationService:
 		self.session.refresh(organization)
 
 		return organization
+
+	def approve(self, organization_id: UUID) -> Organization:
+		return self._change_status(
+			organization_id,
+			expected_status=OrganizationStatus.PENDING,
+			new_status=OrganizationStatus.ACTIVE,
+		)
+
+	def reject(self, organization_id: UUID) -> Organization:
+		return self._change_status(
+			organization_id,
+			expected_status=OrganizationStatus.PENDING,
+			new_status=OrganizationStatus.REJECTED,
+		)

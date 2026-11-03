@@ -5,6 +5,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from keepyourid.blockchain.abi import load_issuer_registry_abi
+from keepyourid.blockchain.adapters.ethereum_adapter import EthereumAdapter
+from keepyourid.blockchain.config import get_blockchain_config
+from keepyourid.blockchain.repositories.transaction_repository import (
+    TransactionRepository,
+)
+from keepyourid.blockchain.services.issuer_registry_service import (
+    IssuerRegistryService,
+)
+from keepyourid.blockchain.signers.local_signer import LocalAccountSigner
 from keepyourid.core.dependencies import get_db
 from keepyourid.modules.dids.challenge_service import (
     DIDChallengeAlreadyConsumedError,
@@ -55,6 +65,33 @@ def get_did_verifier() -> DIDVerificationService:
 
     return DIDVerificationService(
         resolver=UniversalResolver(endpoint=endpoint),
+    )
+
+
+def get_issuer_registry_service(
+    db: Session = Depends(get_db),
+) -> IssuerRegistryService | None:
+    private_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY") or os.getenv(
+        "ISSUER_REGISTRY_PRIVATE_KEY"
+    )
+
+    if not private_key:
+        return None
+
+    try:
+        config = get_blockchain_config()
+    except RuntimeError:
+        return None
+
+    adapter = EthereumAdapter(config, load_issuer_registry_abi())
+    signer = LocalAccountSigner(private_key)
+    repository = TransactionRepository(db)
+
+    return IssuerRegistryService(
+        adapter=adapter,
+        signer=signer,
+        transaction_repository=repository,
+        session=db,
     )
 
 
@@ -141,9 +178,15 @@ def verify_did_control(
     data: DIDProofSubmission,
     db: Session = Depends(get_db),
     verifier: DIDVerificationService = Depends(get_did_verifier),
+    issuer_registry_service: IssuerRegistryService | None = Depends(
+        get_issuer_registry_service
+    ),
 ):
     try:
-        result = DIDService(db).verify_control(
+        result = DIDService(
+            db,
+            issuer_registry_service=issuer_registry_service,
+        ).verify_control(
             did_id=did_id,
             proof=data,
             verifier=verifier,

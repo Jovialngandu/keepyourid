@@ -2,8 +2,11 @@
 from uuid import uuid4
 
 import pytest
+from unittest.mock import MagicMock
 
-from keepyourid.modules.dids.schemas import DIDCreate
+from keepyourid.modules.dids.enums import DIDStatus
+from keepyourid.modules.dids.models import DID
+from keepyourid.modules.dids.schemas import DIDCreate, DIDProofSubmission
 from keepyourid.modules.dids.service import (
     DIDAlreadyExistsError,
     DIDService,
@@ -77,3 +80,66 @@ def test_register_did_for_unknown_organization(db_session):
 
     with pytest.raises(OrganizationNotFoundError):
         service.register(uuid4(), data)
+
+
+def test_verify_control_registers_issuer_when_enabled(db_session, monkeypatch):
+    organization = create_organization(db_session)
+    did = DID(
+        organization_id=organization.id,
+        identifier="did:example:issuer-registration",
+        method="example",
+        document={"id": "did:example:issuer-registration"},
+        status=DIDStatus.REGISTERED,
+    )
+    db_session.add(did)
+    db_session.commit()
+    db_session.refresh(did)
+
+    challenge = MagicMock()
+    challenge.id = uuid4()
+    challenge.challenge = "challenge-value"
+    challenge.purpose = "did_authentication"
+    challenge.domain = "keepyourid.local"
+    challenge.issued_at = None
+    challenge.expires_at = None
+
+    verifier = MagicMock()
+    verifier.verify_authentication.return_value = {
+        "verification_method": "#key-1",
+        "signer_address": "0xabc",
+    }
+
+    issuer_service = MagicMock()
+    issuer_service.register_issuer.return_value = {"status": "PENDING"}
+
+    monkeypatch.setattr(
+        "keepyourid.modules.dids.service.DIDChallengeService.validate_challenge",
+        lambda self, *args, **kwargs: challenge,
+    )
+    monkeypatch.setattr(
+        "keepyourid.modules.dids.service.DIDChallengeService.consume_challenge",
+        lambda self, *args, **kwargs: None,
+    )
+
+    service = DIDService(db_session, issuer_registry_service=issuer_service)
+    result = service.verify_control(
+        did.id,
+        DIDProofSubmission(
+            challenge_id=challenge.id,
+            verification_method="#key-1",
+            signature="0xdeadbeef",
+        ),
+        verifier,
+    )
+
+    assert result["status"] == DIDStatus.VERIFIED.value
+    issuer_service.register_issuer.assert_called_once_with(
+        organization_id=organization.id,
+        did_id=did.id,
+        did=did.identifier,
+        metadata={
+            "organization_id": str(organization.id),
+            "organization_name": organization.legal_name,
+            "did_id": str(did.id),
+        },
+    )
