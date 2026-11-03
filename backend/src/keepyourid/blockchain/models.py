@@ -14,6 +14,10 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from keepyourid.blockchain.enums import (
+    BlockchainOperation,
+    BlockchainTransactionStatus,
+)
 from keepyourid.core.database import Base
 
 
@@ -51,36 +55,30 @@ class BlockchainTransaction(Base):
         nullable=True,
     )
 
-    chain_id: Mapped[int] = mapped_column(
-        Integer,
+    chain_id: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    operation: Mapped[BlockchainOperation] = mapped_column(
+        Enum(
+            BlockchainOperation,
+            name="blockchain_operation",
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
         nullable=False,
     )
 
-    operation: Mapped[str] = mapped_column(
-        String(50),
+    status: Mapped[BlockchainTransactionStatus] = mapped_column(
+        Enum(
+            BlockchainTransactionStatus,
+            name="blockchain_transaction_status",
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
+        default=BlockchainTransactionStatus.PENDING,
         nullable=False,
     )
 
-    status: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        default="PENDING",
-    )
-
-    block_number: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-    )
-
-    gas_used: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-    )
-
-    error_message: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
+    block_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gas_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
