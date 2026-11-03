@@ -29,6 +29,7 @@ from keepyourid.modules.dids.schemas import (
     DIDChallengeCreate,
     DIDChallengeResponse,
     DIDCreate,
+    DIDListResponse,
     DIDProofSubmission,
     DIDResponse,
     DIDVerificationResponse,
@@ -93,6 +94,23 @@ def get_issuer_registry_service(
         transaction_repository=repository,
         session=db,
     )
+
+
+@router.get("/organizations/{organization_id}", response_model=DIDListResponse)
+def list_dids_for_organization(
+    organization_id: UUID,
+    db: Session = Depends(get_db),
+):
+    dids = DIDService(db).list_by_organization(organization_id)
+    return DIDListResponse(items=dids)
+
+
+@router.get("/{did_id}", response_model=DIDResponse)
+def get_did(did_id: UUID, db: Session = Depends(get_db)):
+    did = DIDService(db).get(did_id)
+    if did is None:
+        raise HTTPException(status_code=404, detail="DID not found.")
+    return did
 
 
 @router.post(

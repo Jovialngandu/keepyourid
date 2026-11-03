@@ -64,7 +64,12 @@ class CredentialIssuancePreparationResponse(BaseModel):
 class CredentialIssuanceCompletion(BaseModel):
     signature: str = Field(min_length=1)
     key_id: str = Field(min_length=1)
+
+
+class CredentialRevocationRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=1000)
     
+
 class CredentialIssuanceResponse(BaseModel):
     id: UUID
     credential_id: str

@@ -9,6 +9,13 @@ class OrganizationRepository:
     def __init__(self, session: Session):
         self.session = session
 
+    def get_by_id(self, organization_id) -> Organization | None:
+        return self.session.get(Organization, organization_id)
+
+    def list(self) -> list[Organization]:
+        statement = select(Organization).order_by(Organization.created_at.desc())
+        return list(self.session.scalars(statement).all())
+
     def get_by_email(self, email: str) -> Organization | None:
         return self.session.scalar(
             select(Organization).where(Organization.email == email)

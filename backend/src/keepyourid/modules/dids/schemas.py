@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from keepyourid.modules.dids.enums import DIDStatus
+
 
 class DIDCreate(BaseModel):
     identifier: str = Field(min_length=5, max_length=500)
@@ -18,8 +20,13 @@ class DIDResponse(BaseModel):
     identifier: str
     method: str
     document: dict
+    status: DIDStatus
     created_at: datetime
     updated_at: datetime
+
+
+class DIDListResponse(BaseModel):
+    items: list[DIDResponse]
 
 
 class DIDChallengeCreate(BaseModel):

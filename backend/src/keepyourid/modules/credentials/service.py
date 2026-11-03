@@ -374,3 +374,33 @@ class CredentialService:
             )
 
         return self._resolve_issuer_key(credential)
+
+    def revoke(
+        self,
+        credential_id: UUID,
+        reason: str | None = None,
+        organization_id: UUID | None = None,
+    ) -> VerifiableCredential:
+        credential = self.get(credential_id, organization_id)
+
+        if credential is None:
+            raise CredentialInvalidDataError("Credential not found.")
+
+        if credential.status == CredentialStatus.REVOKED:
+            return credential
+
+        credential.status = CredentialStatus.REVOKED
+        payload = dict(credential.proof or {})
+        payload["revoked"] = True
+        if reason:
+            payload["reason"] = reason
+        credential.proof = payload
+
+        try:
+            self.session.commit()
+            self.session.refresh(credential)
+        except Exception:
+            self.session.rollback()
+            raise
+
+        return credential

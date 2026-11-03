@@ -41,6 +41,12 @@ class DIDService:
         self.repository = DIDRepository(session)
         self.issuer_registry_service = issuer_registry_service
 
+    def get(self, did_id: UUID) -> DID | None:
+        return self.repository.get_by_id(did_id)
+
+    def list_by_organization(self, organization_id: UUID) -> list[DID]:
+        return self.repository.list_by_organization(organization_id)
+
     def register(
         self,
         organization_id: UUID,
@@ -76,7 +82,11 @@ class DIDService:
         )
 
         try:
-            return self.repository.create(did)
+            created = self.repository.create(did)
+            organization.did = created.identifier
+            self.session.commit()
+            self.session.refresh(organization)
+            return created
         except IntegrityError as exc:
             self.session.rollback()
             raise DIDAlreadyExistsError(

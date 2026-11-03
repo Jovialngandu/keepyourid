@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 from keepyourid.core.dependencies import get_db
 from keepyourid.modules.credentials.schemas import (
     CredentialCreate,
+    CredentialIssuanceCompletion,
+    CredentialIssuancePreparationResponse,
+    CredentialIssuanceResponse,
     CredentialResponse,
+    CredentialRevocationRequest,
 )
 from keepyourid.modules.credentials.service import (
     CredentialAlreadyExistsError,
@@ -17,18 +21,6 @@ from keepyourid.modules.credentials.service import (
     CredentialOrganizationInactiveError,
     CredentialOrganizationNotFoundError,
     CredentialService,
-)
-
-from keepyourid.modules.credentials.schemas import (
-    CredentialSigningRequest,
-    CredentialIssuanceRequest,
-)
-
-
-from keepyourid.modules.credentials.schemas import (
-    CredentialIssuancePreparationResponse,
-    CredentialIssuanceCompletion,
-    CredentialIssuanceResponse,
 )
 
 router = APIRouter(
@@ -170,6 +162,34 @@ def complete_credential_issuance(
             signature=data.signature,
             key_id=data.key_id,
             organization_id=organization_id,
+        )
+    except CredentialInvalidDataError as exc:
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if str(exc) == "Credential not found."
+            else status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/{credential_id}/revoke",
+    response_model=CredentialResponse,
+)
+def revoke_credential(
+    organization_id: UUID,
+    credential_id: UUID,
+    data: CredentialRevocationRequest,
+    service: CredentialService = Depends(get_credential_service),
+):
+    try:
+        return service.revoke(
+            credential_id=credential_id,
+            organization_id=organization_id,
+            reason=data.reason,
         )
     except CredentialInvalidDataError as exc:
         status_code = (

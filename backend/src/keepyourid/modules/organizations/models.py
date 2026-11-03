@@ -1,12 +1,24 @@
 from datetime import datetime
+from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from keepyourid.core.database import Base
 from keepyourid.modules.organizations.enums import OrganizationStatus
+
+
+class MembershipRole(str, Enum):
+    OWNER = "OWNER"
+    ADMIN = "ADMIN"
+    MEMBER = "MEMBER"
+
+
+class MembershipStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
 
 
 class Organization(Base):
@@ -51,11 +63,67 @@ class Organization(Base):
     
     
     status: Mapped[OrganizationStatus] = mapped_column(
-    Enum(
-        OrganizationStatus,
-        name="organization_status",
-        values_callable=lambda enum: [item.value for item in enum],
-    ),
-    default=OrganizationStatus.ACTIVE,
-    nullable=False,
-)
+        SAEnum(
+            OrganizationStatus,
+            name="organization_status",
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
+        default=OrganizationStatus.ACTIVE,
+        nullable=False,
+    )
+
+
+class OrganizationMembership(Base):
+    __tablename__ = "organization_memberships"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "user_id",
+            name="uq_membership_organization_user",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    organization_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    role: Mapped[MembershipRole] = mapped_column(
+        SAEnum(
+            MembershipRole,
+            name="membership_role",
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
+        default=MembershipRole.MEMBER,
+        nullable=False,
+    )
+    status: Mapped[MembershipStatus] = mapped_column(
+        SAEnum(
+            MembershipStatus,
+            name="membership_status",
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
+        default=MembershipStatus.ACTIVE,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
