@@ -36,9 +36,10 @@ class DIDAlreadyVerifiedError(Exception):
 
 
 class DIDService:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, issuer_registry_service=None):
         self.session = session
         self.repository = DIDRepository(session)
+        self.issuer_registry_service = issuer_registry_service
 
     def register(
         self,
@@ -132,7 +133,28 @@ class DIDService:
             self.session.commit()
             self.session.refresh(did)
 
-            return {
+            blockchain_result = None
+            if self.issuer_registry_service is not None:
+                organization = self.session.get(Organization, did.organization_id)
+                metadata = {
+                    "organization_id": str(did.organization_id),
+                    "organization_name": organization.legal_name if organization else None,
+                    "did_id": str(did.id),
+                }
+                try:
+                    blockchain_result = self.issuer_registry_service.register_issuer(
+                        organization_id=did.organization_id,
+                        did_id=did.id,
+                        did=did.identifier,
+                        metadata=metadata,
+                    )
+                except Exception as exc:  # pragma: no cover - defensive boundary
+                    blockchain_result = {
+                        "status": "PENDING",
+                        "error": str(exc),
+                    }
+
+            response = {
                 "did_id": did.id,
                 "identifier": did.identifier,
                 "status": did.status.value,
@@ -140,6 +162,10 @@ class DIDService:
                 "signer_address": result["signer_address"],
                 "verified_at": datetime.now(timezone.utc),
             }
+            if blockchain_result is not None:
+                response["blockchain_registration"] = blockchain_result
+
+            return response
 
         except Exception:
             self.session.rollback()

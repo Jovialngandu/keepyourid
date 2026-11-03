@@ -73,6 +73,25 @@ def test_cannot_reactivate_active_organization(db_session):
         service.reactivate(organization.id)
 
 
+def test_register_organization_starts_pending(db_session):
+    service = OrganizationService(db_session)
+
+    result = service.register(
+        type(
+            "OrgInput",
+            (),
+            {
+                "legal_name": "Pending Org",
+                "registration_number": "ORG-PENDING-001",
+                "email": "pending@example.com",
+                "phone": None,
+            },
+        )()
+    )
+
+    assert result.status == OrganizationStatus.PENDING
+
+
 def test_organization_not_found(db_session):
     service = OrganizationService(db_session)
 
