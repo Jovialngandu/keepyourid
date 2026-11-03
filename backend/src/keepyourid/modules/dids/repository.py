@@ -14,6 +14,14 @@ class DIDRepository:
     def get_by_id(self, did_id: UUID) -> DID | None:
         return self.session.get(DID, did_id)
 
+    def list_by_organization(self, organization_id: UUID) -> list[DID]:
+        statement = (
+            select(DID)
+            .where(DID.organization_id == organization_id)
+            .order_by(DID.created_at.desc())
+        )
+        return list(self.session.scalars(statement).all())
+
     def get_by_organization(self, organization_id: UUID) -> DID | None:
         return self.session.scalar(
             select(DID).where(

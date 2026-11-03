@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from keepyourid.modules.dids.models import DID
 from keepyourid.modules.organizations.enums import OrganizationStatus
 from keepyourid.modules.organizations.models import Organization
 from keepyourid.modules.organizations.repository import OrganizationRepository
@@ -27,6 +28,24 @@ class OrganizationService:
 	def __init__(self, session: Session):
 		self.session = session
 		self.repository = OrganizationRepository(session)
+
+	def list(self) -> list[Organization]:
+		return self.repository.list()
+
+	def get(self, organization_id: UUID) -> Organization | None:
+		organization = self.repository.get_by_id(organization_id)
+		if organization is None:
+			return None
+		if organization.did is None:
+			related_did = (
+				self.session.query(DID)
+				.filter(DID.organization_id == organization_id)
+				.order_by(DID.created_at.desc())
+				.first()
+			)
+			if related_did is not None:
+				organization.did = related_did.identifier
+		return organization
 
 	def register(self, data: OrganizationCreate) -> Organization:
 		email = str(data.email).strip().lower()

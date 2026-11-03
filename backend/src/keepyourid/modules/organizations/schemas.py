@@ -25,3 +25,7 @@ class OrganizationResponse(BaseModel):
     status: OrganizationStatus
     created_at: datetime
     updated_at: datetime
+
+
+class OrganizationListResponse(BaseModel):
+    items: list[OrganizationResponse]
