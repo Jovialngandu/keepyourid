@@ -66,7 +66,7 @@ class OrganizationService:
 			registration_number=registration_number,
 			email=email,
 			phone=data.phone,
-			status=OrganizationStatus.PENDING,
+			status=OrganizationStatus.ACTIVE,
 		)
 
 		try:
