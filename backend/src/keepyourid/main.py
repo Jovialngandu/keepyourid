@@ -6,6 +6,19 @@ from keepyourid.modules.organizations.router import router as organizations_rout
 from keepyourid.modules.dids.router import router as dids_router
 from keepyourid.modules.credentials.router import router as credentials_router
 
+from keepyourid.blockchain.abi import load_issuer_registry_abi
+from keepyourid.blockchain.adapters.ethereum_adapter import EthereumAdapter
+from keepyourid.blockchain.config import get_blockchain_config
+
+
+def get_ethereum_adapter() -> EthereumAdapter:
+    config = get_blockchain_config()
+    abi = load_issuer_registry_abi()
+
+    return EthereumAdapter(config, abi)
+
+
+
 
 settings = get_settings()
 

@@ -10,6 +10,7 @@ from keepyourid.modules.dids.challenge_models import DIDChallenge
 from keepyourid.modules.dids.models import DID
 from keepyourid.modules.organizations.models import Organization
 from keepyourid.modules.credentials.models import VerifiableCredential
+from keepyourid.blockchain.models import BlockchainTransaction
 
 
 # this is the Alembic Config object, which provides
