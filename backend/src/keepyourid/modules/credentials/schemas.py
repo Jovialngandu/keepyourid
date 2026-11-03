@@ -36,6 +36,7 @@ class CredentialResponse(BaseModel):
     valid_until: datetime | None
     created_at: datetime
     updated_at: datetime
+    signed_credential: str | None = None
     
     
 

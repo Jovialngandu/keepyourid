@@ -267,6 +267,26 @@ def test_get_issuer_signing_key_success(
 	assert public_key == PUBLIC_KEY
 
 
+def test_get_issued_credential_returns_signed_value(
+	db_session,
+	draft_credential,
+	mocked_signing,
+):
+	service = CredentialService(db_session)
+
+	issued = service.complete_issuance(
+		credential_id=draft_credential.id,
+		signature="valid-signature",
+		key_id=KEY_ID,
+	)
+	retrieved = service.get(draft_credential.id)
+
+	assert retrieved is not None
+	assert retrieved.status == CredentialStatus.ISSUED
+	assert retrieved.signed_credential == "header.payload.valid-signature"
+	assert issued.signed_credential == retrieved.signed_credential
+
+
 def _b64url_encode(data: bytes) -> str:
 	return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
