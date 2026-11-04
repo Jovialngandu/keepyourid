@@ -6,7 +6,7 @@ import pytest
 from eth_keys import keys
 
 from keepyourid.modules.credentials.cryptography.jws import b64url_encode, build_signing_input, complete_jws
-from keepyourid.modules.dids.verification.interfaces import ResolvedDID
+from keepyourid.verification.interfaces import ResolvedDID
 from verification_engine.engine import VerificationEngineError, verify_credential
 
 

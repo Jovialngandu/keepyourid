@@ -6,9 +6,9 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from keepyourid.modules.credentials.cryptography.jws import JWSVerificationError, verify_jws
-from keepyourid.modules.dids.verification.did_ethr import DIDEthrVerifier
-from keepyourid.modules.dids.verification.interfaces import ResolvedDID
-from keepyourid.modules.dids.verification.resolver import UniversalResolver
+from keepyourid.verification.did.did_ethr import DIDEthrVerifier
+from keepyourid.verification.interfaces import ResolvedDID
+from keepyourid.verification.did.resolver import UniversalResolver
 
 
 @dataclass

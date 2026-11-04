@@ -32,14 +32,14 @@ from keepyourid.modules.dids.service import (
     OrganizationInactiveError,
     OrganizationNotFoundError,
 )
-from keepyourid.modules.dids.verification.resolver import (
+from keepyourid.verification.did.resolver import (
     UniversalResolver,
 )
-from keepyourid.modules.dids.verification.service import (
+from keepyourid.verification.did.service import (
     DIDVerificationError,
     DIDVerificationService,
 )
-from keepyourid.modules.dids.verification.signature import (
+from keepyourid.verification.did.signature import (
     build_authentication_message,
 )
 
