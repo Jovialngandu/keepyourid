@@ -21,6 +21,7 @@ from keepyourid.modules.credentials.cryptography.issuer_keys import (
 )
 from keepyourid.modules.dids.enums import DIDStatus
 from keepyourid.modules.dids.models import DID
+from keepyourid.modules.holders.models import HolderDID
 from keepyourid.modules.organizations.enums import OrganizationStatus
 from keepyourid.modules.organizations.models import Organization
 
@@ -115,6 +116,12 @@ class CredentialService:
                 "A specific credential type is required."
             )
 
+        holder_did: HolderDID | None = None
+        if data.holder_did_id is not None:
+            holder_did = self.session.get(HolderDID, data.holder_did_id)
+            if holder_did is None:
+                raise CredentialInvalidDataError("Holder DID not found.")
+
         credential_uuid = uuid4()
         credential_identifier = f"urn:uuid:{credential_uuid}"
 
@@ -140,6 +147,7 @@ class CredentialService:
             credential_id=credential_identifier,
             organization_id=organization_id,
             issuer_did_id=did.id,
+            holder_did_id=data.holder_did_id,
             credential_type=credential_type,
             credential_subject=data.subject,
             payload=payload,
@@ -183,6 +191,12 @@ class CredentialService:
         return self.repository.list_by_organization(
             organization_id
         )
+
+    def list_by_holder_user(
+        self,
+        user_id: UUID,
+    ) -> list[VerifiableCredential]:
+        return self.repository.list_by_holder_user(user_id)
 
     # ---------------------------------------------------------
     # Issuer key resolution

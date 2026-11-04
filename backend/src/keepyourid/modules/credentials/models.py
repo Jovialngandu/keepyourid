@@ -37,6 +37,13 @@ class VerifiableCredential(Base):
         nullable=False,
     )
 
+    holder_did_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("holder_dids.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+
     credential_type: Mapped[str] = mapped_column(
         String(255),
         nullable=False,

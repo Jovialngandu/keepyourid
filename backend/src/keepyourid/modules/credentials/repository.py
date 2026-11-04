@@ -39,3 +39,17 @@ class CredentialRepository:
             .order_by(VerifiableCredential.created_at.desc())
         )
         return list(self.session.scalars(statement).all())
+
+    def list_by_holder_user(
+        self,
+        user_id: UUID,
+    ) -> list[VerifiableCredential]:
+        from keepyourid.modules.holders.models import HolderDID
+
+        statement = (
+            select(VerifiableCredential)
+            .join(HolderDID, HolderDID.id == VerifiableCredential.holder_did_id)
+            .where(HolderDID.user_id == user_id)
+            .order_by(VerifiableCredential.created_at.desc())
+        )
+        return list(self.session.scalars(statement).all())
