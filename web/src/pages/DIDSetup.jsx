@@ -6,9 +6,7 @@ import {
   createDIDChallenge,
   getOrganizationDids,
   verifyDID,
-  registerIssuer,
 } from "../services/did";
-
 
 import { connectWallet, signMessage } from "../utils/wallet";
 
@@ -31,6 +29,26 @@ function buildDIDDocument(identifier, address) {
   };
 }
 
+function getBlockchainStatusLabel(status) {
+  switch (status?.toUpperCase()) {
+    case "CONFIRMED":
+    case "SUCCESS":
+    case "REGISTERED":
+      return "Enregistrement confirmé";
+
+    case "PENDING":
+    case "SUBMITTED":
+      return "Enregistrement en attente";
+
+    case "FAILED":
+    case "ERROR":
+      return "Échec de l'enregistrement";
+
+    default:
+      return status || "Statut non communiqué";
+  }
+}
+
 export default function DIDSetup() {
   const { organizationId } = useParams();
 
@@ -42,13 +60,6 @@ export default function DIDSetup() {
   const [success, setSuccess] = useState("");
   const [verification, setVerification] = useState(null);
 
-
-const [issuer, setIssuer] = useState(null);
-const [registeringIssuer, setRegisteringIssuer] = useState(false);
-
-
-
-  
   useEffect(() => {
     async function loadDID() {
       try {
@@ -80,78 +91,44 @@ const [registeringIssuer, setRegisteringIssuer] = useState(false);
     }
   }
 
-
-async function handleRegisterIssuer() {
-  if (!did || did.status !== "VERIFIED") {
-    setError("Le DID doit d'abord être vérifié.");
-    return;
-  }
-
-  if (!account) {
-    setError("Connecte ton wallet avant de continuer.");
-    return;
-  }
-
-  setRegisteringIssuer(true);
-  setError("");
-  setSuccess("");
-  setIssuer(null);
-
-  try {
-    const result = await registerIssuer(organizationId, {
-      did_id: did.id,
-    });
-
-    setIssuer(result);
-    setSuccess("Enregistrement de l'émetteur effectué.");
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setRegisteringIssuer(false);
-  }
-}
-
-
-
-async function handleAssociateDID() {
-  if (!account) {
-    setError("Connecte d'abord ton wallet.");
-    return;
-  }
-
-  setProcessing(true);
-  setError("");
-  setSuccess("");
-
-  try {
-    const identifier = `did:ethr:sepolia:${account}`;
-
-    const result = await createDID(organizationId, {
-      identifier,
-      method: "ethr",
-      document: buildDIDDocument(identifier, account),
-    });
-
-    setDid(result);
-    setSuccess("DID associé à ton organisation.");
-  } catch (err) {
-    const alreadyRegistered =
-      err.status === 409 ||
-      err.message?.toLowerCase().includes("already registered");
-
-    if (alreadyRegistered) {
-      setError(
-        "Ce DID existe déjà. Il ne peut pas être créé une seconde fois. " +
-        "Vérifie s'il est déjà associé à une autre organisation."
-      );
-    } else {
-      setError(err.message || "Impossible d'associer le DID.");
+  async function handleAssociateDID() {
+    if (!account) {
+      setError("Connecte d'abord ton wallet.");
+      return;
     }
-  } finally {
-    setProcessing(false);
-  }
-}
 
+    setProcessing(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const identifier = `did:ethr:sepolia:${account}`;
+
+      const result = await createDID(organizationId, {
+        identifier,
+        method: "ethr",
+        document: buildDIDDocument(identifier, account),
+      });
+
+      setDid(result);
+      setSuccess("DID associé à ton organisation.");
+    } catch (err) {
+      const alreadyRegistered =
+        err.status === 409 ||
+        err.message?.toLowerCase().includes("already registered");
+
+      if (alreadyRegistered) {
+        setError(
+          "Ce DID existe déjà. Il ne peut pas être créé une seconde fois. " +
+          "Vérifie s'il est déjà associé à une autre organisation."
+        );
+      } else {
+        setError(err.message || "Impossible d'associer le DID.");
+      }
+    } finally {
+      setProcessing(false);
+    }
+  }
 
   async function handleVerifyDID() {
     if (!did || !account) {
@@ -182,6 +159,7 @@ async function handleAssociateDID() {
       });
 
       setVerification(result);
+
       setDid((previous) => ({
         ...previous,
         status: result.status,
@@ -199,6 +177,14 @@ async function handleAssociateDID() {
     return <main className="did-page">Chargement de l'identité...</main>;
   }
 
+  const blockchainRegistration = verification?.blockchain_registration;
+
+  const transactionHash =
+    blockchainRegistration?.transaction_hash ||
+    blockchainRegistration?.tx_hash ||
+    blockchainRegistration?.transaction_id ||
+    blockchainRegistration?.hash;
+
   return (
     <main className="did-page">
       <header className="did-header">
@@ -207,7 +193,9 @@ async function handleAssociateDID() {
         </Link>
 
         <span className="did-eyebrow">IDENTITÉ NUMÉRIQUE</span>
+
         <h1>Connect your identity.</h1>
+
         <p>
           Associe une identité décentralisée à ton organisation et
           prouve que tu contrôles la clé correspondante.
@@ -220,6 +208,7 @@ async function handleAssociateDID() {
       <section className="did-card">
         <div className="did-step">01 — WALLET</div>
         <h2>Connect your wallet</h2>
+
         <p>
           Ton wallet permet de prouver le contrôle de l'adresse
           utilisée par ton identité numérique.
@@ -275,6 +264,7 @@ async function handleAssociateDID() {
       <section className="did-card">
         <div className="did-step">03 — OWNERSHIP PROOF</div>
         <h2>Verify ownership</h2>
+
         <p>
           KeepYourID génère un challenge unique. Ton wallet signe
           le message et le backend vérifie la signature.
@@ -283,7 +273,12 @@ async function handleAssociateDID() {
         <button
           className="did-primary-button"
           onClick={handleVerifyDID}
-          disabled={!account || !did || processing || did.status === "VERIFIED"}
+          disabled={
+            !account ||
+            !did ||
+            processing ||
+            did.status === "VERIFIED"
+          }
         >
           {processing
             ? "Verification..."
@@ -295,69 +290,44 @@ async function handleAssociateDID() {
         {verification && (
           <div className="did-verification-result">
             <strong>Verification result</strong>
+
             <p>Status : {verification.status}</p>
             <p>Signer : {verification.signer_address}</p>
+
             <p>
               Verification method :{" "}
               {verification.verification_method}
             </p>
+
+            {blockchainRegistration && (
+              <>
+                <hr />
+
+                <strong>Blockchain registration</strong>
+
+                <p>
+                  Status :{" "}
+                  {getBlockchainStatusLabel(
+                    blockchainRegistration.status
+                  )}
+                </p>
+
+                {transactionHash && (
+                  <p>
+                    Transaction : <code>{transactionHash}</code>
+                  </p>
+                )}
+
+                {blockchainRegistration.error && (
+                  <p>
+                    Détail : {blockchainRegistration.error}
+                  </p>
+                )}
+              </>
+            )}
           </div>
         )}
       </section>
-
-
-<section className="did-card">
-  <div className="did-step">04 — BLOCKCHAIN REGISTRATION</div>
-
-  <h2>Register your issuer identity</h2>
-
-  <p>
-    Enregistre ton organisation comme émetteur sur le registre
-    blockchain KeepYourID.
-  </p>
-
-  <button
-    className="did-primary-button"
-    onClick={handleRegisterIssuer}
-    disabled={
-      !did ||
-      did.status !== "VERIFIED" ||
-      registeringIssuer ||
-      Boolean(issuer)
-    }
-  >
-    {registeringIssuer
-      ? "Registering on blockchain..."
-      : issuer
-        ? "Issuer registered"
-        : "Register issuer"}
-  </button>
-
-  {issuer && (
-    <div className="did-verification-result">
-      <strong>Issuer registration result</strong>
-
-      <p>
-        Status: {issuer.status || issuer.is_registered ? "Registered" : "Submitted"}
-      </p>
-
-      {issuer.transaction_hash && (
-        <p>
-          Transaction:
-          <code>{issuer.transaction_hash}</code>
-        </p>
-      )}
-
-      {issuer.tx_hash && (
-        <p>
-          Transaction:
-          <code>{issuer.tx_hash}</code>
-        </p>
-      )}
-    </div>
-  )}
-</section>
-
     </main>
   );
 }
