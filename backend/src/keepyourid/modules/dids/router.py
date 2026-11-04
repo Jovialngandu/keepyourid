@@ -24,16 +24,7 @@ from keepyourid.modules.dids.challenge_service import (
     DIDChallengeWrongDIDError,
     DIDNotFoundError,
 )
-from keepyourid.modules.dids.models import DID
-from keepyourid.modules.dids.schemas import (
-    DIDChallengeCreate,
-    DIDChallengeResponse,
-    DIDCreate,
-    DIDListResponse,
-    DIDProofSubmission,
-    DIDResponse,
-    DIDVerificationResponse,
-)
+
 from keepyourid.modules.dids.service import (
     DIDAlreadyExistsError,
     DIDAlreadyVerifiedError,
@@ -51,6 +42,20 @@ from keepyourid.modules.dids.verification.service import (
 from keepyourid.modules.dids.verification.signature import (
     build_authentication_message,
 )
+
+from keepyourid.modules.dids.schemas import (
+    DIDBlockchainStatusResponse,
+    DIDChallengeCreate,
+    DIDChallengeResponse,
+    DIDCreate,
+    DIDListResponse,
+    DIDProofSubmission,
+    DIDResponse,
+    DIDVerificationResponse,
+)
+
+from keepyourid.config import get_settings
+
 
 router = APIRouter(prefix="/dids", tags=["DIDs"])
 
@@ -76,21 +81,40 @@ def get_did_verifier() -> DIDVerificationService:
 def get_issuer_registry_service(
     db: Session = Depends(get_db),
 ) -> IssuerRegistryService | None:
-    private_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY") or os.getenv(
-        "ISSUER_REGISTRY_PRIVATE_KEY"
-    )
 
-    if not private_key:
-        return None
+    settings = get_settings()
+
+    print("[BLOCKCHAIN] Private key configured:",
+          settings.blockchain_private_key is not None)
 
     try:
         config = get_blockchain_config()
-    except RuntimeError:
+        print("[BLOCKCHAIN] RPC:", config.rpc_url)
+        print("[BLOCKCHAIN] Chain ID:", config.chain_id)
+        print("[BLOCKCHAIN] Registry:", config.registry_address)
+
+    except RuntimeError as exc:
+        print("[BLOCKCHAIN] Configuration error:", exc)
         return None
 
-    adapter = EthereumAdapter(config, load_issuer_registry_abi())
+    if settings.blockchain_private_key is None:
+        print("[BLOCKCHAIN] Missing private key")
+        return None
+
+    private_key = settings.blockchain_private_key.get_secret_value()
+
+    adapter = EthereumAdapter(
+        config,
+        load_issuer_registry_abi(),
+    )
+
     signer = LocalAccountSigner(private_key)
+
+    print("[BLOCKCHAIN] Signer:", signer.address)
+
     repository = TransactionRepository(db)
+
+    print("[BLOCKCHAIN] Issuer registry service initialized")
 
     return IssuerRegistryService(
         adapter=adapter,
@@ -236,3 +260,49 @@ def verify_did_control(
 
     except DIDVerificationError as exc:
         raise HTTPException(400, str(exc)) from exc
+
+
+
+@router.get(
+    "/{did_id}/blockchain",
+    response_model=DIDBlockchainStatusResponse,
+)
+def get_did_blockchain_status(
+    did_id: UUID,
+    db: Session = Depends(get_db),
+    issuer_registry_service: IssuerRegistryService | None = Depends(
+        get_issuer_registry_service
+    ),
+):
+    did = DIDService(db).get(did_id)
+
+    if did is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DID not found.",
+        )
+
+    if issuer_registry_service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Blockchain service is not configured.",
+        )
+
+    issuer = issuer_registry_service.get_issuer(did.identifier)
+
+    if issuer is None:
+        return DIDBlockchainStatusResponse(
+            did_id=did.id,
+            identifier=did.identifier,
+            registered=False,
+            active=False,
+            issuer=None,
+        )
+
+    return DIDBlockchainStatusResponse(
+        did_id=did.id,
+        identifier=did.identifier,
+        registered=True,
+        active=issuer["status"] == "ACTIVE",
+        issuer=issuer,
+    )
