@@ -10,6 +10,7 @@ from keepyourid.modules.credentials.enums import CredentialStatus
 class CredentialCreate(BaseModel):
     credential_type: str = Field(min_length=2, max_length=255)
     subject: dict = Field(min_length=1)
+    holder_did_id: UUID | None = None
     valid_until: datetime | None = None
 
     @model_validator(mode="after")
@@ -27,6 +28,7 @@ class CredentialResponse(BaseModel):
     credential_id: str
     organization_id: UUID
     issuer_did_id: UUID
+    holder_did_id: UUID | None = None
     credential_type: str
     credential_subject: dict
     payload: dict

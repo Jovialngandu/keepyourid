@@ -129,6 +129,8 @@ class DIDService:
                 expires_at=challenge.expires_at,
                 verification_method=proof.verification_method,
                 signature=proof.signature,
+                did_document=did.document,
+                
             )
 
             challenge_service.consume_challenge(

@@ -23,7 +23,7 @@ class DIDVerificationError(Exception):
 class DIDVerificationService:
     def __init__(
         self,
-        resolver: DIDResolver,
+        resolver: DIDResolver | None = None,
         method_verifier: DIDEthrVerifier | None = None,
         signature_verifier: EthereumSignatureVerifier | None = None,
     ):
@@ -44,6 +44,7 @@ class DIDVerificationService:
         expires_at: datetime,
         verification_method: str,
         signature: str,
+        did_document: dict | None = None,
     ) -> dict:
         now = datetime.now(timezone.utc)
 
@@ -63,17 +64,26 @@ class DIDVerificationService:
             )
 
         try:
-            resolved = self.resolver.resolve(did)
+            # Use the locally stored document when provided.
+            # Otherwise, fall back to the configured resolver.
+            if did_document is None:
+                if self.resolver is None:
+                    raise DIDVerificationError(
+                        "No DID document or resolver available."
+                    )
+
+                resolved = self.resolver.resolve(did)
+                did_document = resolved.document
 
             self.method_verifier.validate_did_document(
                 did,
-                resolved.document,
+                did_document,
             )
 
             method_id, expected_address = (
                 self.method_verifier.get_authorized_method(
                     did,
-                    resolved.document,
+                    did_document,
                     verification_method,
                 )
             )

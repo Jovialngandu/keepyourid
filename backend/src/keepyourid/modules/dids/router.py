@@ -55,18 +55,22 @@ from keepyourid.modules.dids.verification.signature import (
 router = APIRouter(prefix="/dids", tags=["DIDs"])
 
 
+# def get_did_verifier() -> DIDVerificationService:
+#     endpoint = os.getenv("DID_RESOLVER_URL")
+
+#     if not endpoint:
+#         raise HTTPException(
+#             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+#             detail="DID resolver is not configured.",
+#         )
+
+#     return DIDVerificationService(
+#         resolver=UniversalResolver(endpoint=endpoint),
+#     )
+
+
 def get_did_verifier() -> DIDVerificationService:
-    endpoint = os.getenv("DID_RESOLVER_URL")
-
-    if not endpoint:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="DID resolver is not configured.",
-        )
-
-    return DIDVerificationService(
-        resolver=UniversalResolver(endpoint=endpoint),
-    )
+    return DIDVerificationService()
 
 
 def get_issuer_registry_service(

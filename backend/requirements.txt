@@ -5,6 +5,8 @@ alembic==1.20.1
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
 async-timeout==5.0.1
 attrs==26.1.0
 bitarray==3.12.3
@@ -36,7 +38,7 @@ httptools==0.9.0
 httpx==0.28.1
 idna==3.20
 iniconfig==2.3.1
--e git+https://github.com/Jovialngandu/keepyourid.git@c8adc4c353df2b928d99cd4ce0395c3339c30b06#egg=keepyourid_backend&subdirectory=backend
+-e git+https://github.com/Jovialngandu/keepyourid.git@4ef4130a9573c8a65ef7a0cfbae746dfaa04eaa2#egg=keepyourid_backend&subdirectory=backend
 Mako==1.4.3
 MarkupSafe==3.0.4
 multidict==7.1.0

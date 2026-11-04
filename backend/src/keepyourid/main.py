@@ -11,6 +11,7 @@ from keepyourid.config import get_settings
 from keepyourid.modules.credentials.router import router as credentials_router
 from keepyourid.modules.dids.router import router as dids_router
 from keepyourid.modules.health.router import router as health_router
+from keepyourid.modules.holders.router import router as holders_router
 from keepyourid.modules.organizations.membership_router import router as organization_membership_router
 from keepyourid.modules.organizations.router import router as organizations_router
 from keepyourid.modules.users.router import router as users_router
@@ -77,6 +78,11 @@ app.include_router(
 
 app.include_router(
     credentials_router,
+    prefix=settings.api_v1_prefix,
+)
+
+app.include_router(
+    holders_router,
     prefix=settings.api_v1_prefix,
 )
 
