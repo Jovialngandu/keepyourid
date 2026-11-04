@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 
 from keepyourid.config import get_settings
@@ -20,7 +21,10 @@ def get_blockchain_config() -> BlockchainConfig:
         "ISSUER_REGISTRY_ADDRESS": settings.issuer_registry_address,
     }
 
-    missing = [name for name, value in required.items() if value is None]
+    missing = [
+        name for name, value in required.items()
+        if value is None
+    ]
 
     if missing:
         raise RuntimeError(
