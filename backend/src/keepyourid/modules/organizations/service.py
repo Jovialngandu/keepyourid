@@ -1,3 +1,4 @@
+from __future__ import annotations
 from uuid import UUID
 
 from sqlalchemy import select
@@ -28,152 +29,167 @@ class InvalidOrganizationTransitionError(Exception):
 	pass
 
 class OrganizationService:
+    def __init__(self, session: Session):
+        self.session = session
+        self.repository = OrganizationRepository(session)
 
-	def __init__(self, session: Session):
-		self.session = session
-		self.repository = OrganizationRepository(session)
+    def list(self) -> list[Organization]:
+        return self.repository.list()
 
-	def list(self) -> list[Organization]:
-		return self.repository.list()
+    def list_by_user(self, user_id: UUID) -> list[Organization]:
+        statement = (
+            select(Organization)
+            .join(
+                OrganizationMembership,
+                OrganizationMembership.organization_id == Organization.id,
+            )
+            .where(
+                OrganizationMembership.user_id == user_id,
+                OrganizationMembership.status == MembershipStatus.ACTIVE,
+            )
+            .order_by(Organization.created_at.desc())
+        )
+        return list(self.session.scalars(statement).all())
 
-	def get(self, organization_id: UUID) -> Organization | None:
-		organization = self.repository.get_by_id(organization_id)
-		if organization is None:
-			return None
-		if organization.did is None:
-			related_did = (
-				self.session.query(DID)
-				.filter(DID.organization_id == organization_id)
-				.order_by(DID.created_at.desc())
-				.first()
-			)
-			if related_did is not None:
-				organization.did = related_did.identifier
-		return organization
+    def get(self, organization_id: UUID) -> Organization | None:
+        organization = self.repository.get_by_id(organization_id)
 
-	def register(self, data: OrganizationCreate, owner_user: User | None = None) -> Organization:
-		email = str(data.email).strip().lower()
-		registration_number = data.registration_number.strip()
+        if organization is None:
+            return None
 
-		if self.repository.get_by_email(email):
-			raise OrganizationAlreadyExistsError(
-				"An organization with this email already exists."
-			)
+        if organization.did is None:
+            related_did = (
+                self.session.query(DID)
+                .filter(DID.organization_id == organization_id)
+                .order_by(DID.created_at.desc())
+                .first()
+            )
 
-		if self.repository.get_by_registration_number(registration_number):
-			raise OrganizationAlreadyExistsError(
-				"An organization with this registration number already exists."
-			)
+            if related_did is not None:
+                organization.did = related_did.identifier
 
-		organization = Organization(
-			legal_name=data.legal_name.strip(),
-			registration_number=registration_number,
-			email=email,
-			phone=data.phone,
-			status=OrganizationStatus.PENDING,
-		)
+        return organization
 
-		try:
-			created = self.repository.create(organization)
-		except IntegrityError as exc:
-			self.repository.session.rollback()
-			raise OrganizationAlreadyExistsError(
-				"An organization with these details already exists."
-			) from exc
+    def register(
+        self,
+        data: OrganizationCreate,
+        owner_user: User,
+    ) -> Organization:
+        email = str(data.email).strip().lower()
+        registration_number = data.registration_number.strip()
 
-		if owner_user is not None:
-			membership = OrganizationMembership(
-				organization_id=created.id,
-				user_id=owner_user.id,
-				role=MembershipRole.OWNER,
-				status=MembershipStatus.ACTIVE,
-			)
-			self.session.add(membership)
-			self.session.commit()
+        if self.repository.get_by_email(email):
+            raise OrganizationAlreadyExistsError(
+                "An organization with this email already exists."
+            )
 
-		return created
-			
-	def _get_organization(self, organization_id: UUID) -> Organization:
-		organization = self.session.get(Organization, organization_id)
+        if self.repository.get_by_registration_number(registration_number):
+            raise OrganizationAlreadyExistsError(
+                "An organization with this registration number already exists."
+            )
 
-		if organization is None:
-			raise OrganizationNotFoundError(
-				f"Organization {organization_id} not found."
-			)
+        organization = Organization(
+            legal_name=data.legal_name.strip(),
+            registration_number=registration_number,
+            email=email,
+            phone=data.phone,
+            status=OrganizationStatus.ACTIVE,
+        )
 
-		return organization
+        try:
+            self.session.add(organization)
+            self.session.flush()
 
-	def _change_status(
-		self,
-		organization_id: UUID,
-		expected_status: OrganizationStatus,
-		new_status: OrganizationStatus,
-	) -> Organization:
-		organization = self._get_organization(organization_id)
+            membership = OrganizationMembership(
+                organization_id=organization.id,
+                user_id=owner_user.id,
+                role=MembershipRole.OWNER,
+                status=MembershipStatus.ACTIVE,
+            )
 
-		if organization.status != expected_status:
-			raise InvalidOrganizationTransitionError(
-				f"Cannot change organization status from "
-				f"{organization.status.value} to {new_status.value}."
-			)
+            self.session.add(membership)
+            self.session.commit()
+            self.session.refresh(organization)
 
-		organization.status = new_status
+            return organization
 
-		self.session.commit()
-		self.session.refresh(organization)
+        except IntegrityError as exc:
+            self.session.rollback()
+            raise OrganizationAlreadyExistsError(
+                "An organization with these details already exists."
+            ) from exc
 
-		return organization
+    def _get_organization(self, organization_id: UUID) -> Organization:
+        organization = self.session.get(Organization, organization_id)
 
+        if organization is None:
+            raise OrganizationNotFoundError(
+                f"Organization {organization_id} not found."
+            )
 
-	def suspend(self, organization_id: UUID) -> Organization:
-		organization = self.session.get(Organization, organization_id)
+        return organization
 
-		if organization is None:
-			raise OrganizationNotFoundError("Organization not found.")
+    def _change_status(
+        self,
+        organization_id: UUID,
+        expected_status: OrganizationStatus,
+        new_status: OrganizationStatus,
+    ) -> Organization:
+        organization = self._get_organization(organization_id)
 
-		if organization.status != OrganizationStatus.ACTIVE:
-			raise InvalidOrganizationTransitionError(
-				"Only active organizations can be suspended."
-			)
+        if organization.status != expected_status:
+            raise InvalidOrganizationTransitionError(
+                f"Cannot change organization status from "
+                f"{organization.status.value} to {new_status.value}."
+            )
 
-		organization.status = OrganizationStatus.SUSPENDED
+        organization.status = new_status
+        self.session.commit()
+        self.session.refresh(organization)
 
-		self.session.commit()
-		self.session.refresh(organization)
+        return organization
 
-		return organization
+    def suspend(self, organization_id: UUID) -> Organization:
+        organization = self._get_organization(organization_id)
 
-	def reactivate(self, organization_id: UUID) -> Organization:
-		organization = self.session.get(Organization, organization_id)
+        if organization.status != OrganizationStatus.ACTIVE:
+            raise InvalidOrganizationTransitionError(
+                "Only active organizations can be suspended."
+            )
 
-		if organization is None:
-			raise OrganizationNotFoundError("Organization not found.")
+        organization.status = OrganizationStatus.SUSPENDED
+        self.session.commit()
+        self.session.refresh(organization)
 
-		if organization.status != OrganizationStatus.SUSPENDED:
-			raise InvalidOrganizationTransitionError(
-				"Only suspended organizations can be reactivated."
-			)
+        return organization
 
-		organization.status = OrganizationStatus.ACTIVE
+    def reactivate(self, organization_id: UUID) -> Organization:
+        organization = self._get_organization(organization_id)
 
-		self.session.commit()
-		self.session.refresh(organization)
+        if organization.status != OrganizationStatus.SUSPENDED:
+            raise InvalidOrganizationTransitionError(
+                "Only suspended organizations can be reactivated."
+            )
 
-		return organization
+        organization.status = OrganizationStatus.ACTIVE
+        self.session.commit()
+        self.session.refresh(organization)
 
-	def approve(self, organization_id: UUID) -> Organization:
-		return self._change_status(
-			organization_id,
-			expected_status=OrganizationStatus.PENDING,
-			new_status=OrganizationStatus.ACTIVE,
-		)
+        return organization
 
-	def reject(self, organization_id: UUID) -> Organization:
-		return self._change_status(
-			organization_id,
-			expected_status=OrganizationStatus.PENDING,
-			new_status=OrganizationStatus.REJECTED,
-		)
+    def approve(self, organization_id: UUID) -> Organization:
+        return self._change_status(
+            organization_id,
+            expected_status=OrganizationStatus.PENDING,
+            new_status=OrganizationStatus.ACTIVE,
+        )
+
+    def reject(self, organization_id: UUID) -> Organization:
+        return self._change_status(
+            organization_id,
+            expected_status=OrganizationStatus.PENDING,
+            new_status=OrganizationStatus.REJECTED,
+        )
 
 
 class OrganizationMembershipService:
