@@ -1,0 +1,137 @@
+.did-page {
+  width: min(900px, calc(100% - 40px));
+  margin: 70px auto;
+  color: #17211d;
+}
+
+.did-header {
+  margin-bottom: 40px;
+}
+
+.did-header > a {
+  display: inline-block;
+  margin-bottom: 35px;
+  color: #59665f;
+  text-decoration: none;
+}
+
+.did-eyebrow,
+.did-step {
+  color: #658174;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.did-header h1 {
+  margin: 12px 0;
+  font-size: clamp(34px, 5vw, 52px);
+  letter-spacing: -2px;
+}
+
+.did-header p,
+.did-card p {
+  color: #68756e;
+  line-height: 1.7;
+}
+
+.did-card {
+  padding: 30px;
+  margin-bottom: 18px;
+  border: 1px solid #e5eae6;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.did-card h2 {
+  margin: 13px 0 8px;
+  font-size: 22px;
+}
+
+.did-primary-button {
+  margin-top: 18px;
+  padding: 13px 20px;
+  border: none;
+  border-radius: 7px;
+  background: #183d30;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.did-primary-button:hover {
+  background: #245642;
+}
+
+.did-primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.did-wallet-address,
+.did-information {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.did-wallet-address span,
+.did-information span {
+  color: #68756e;
+  font-size: 13px;
+}
+
+.did-wallet-address code,
+.did-information code {
+  overflow-wrap: anywhere;
+  padding: 13px;
+  border-radius: 7px;
+  background: #f4f7f5;
+  font-size: 13px;
+}
+
+.did-status {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.did-alert {
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.did-alert.error {
+  background: #fff0ef;
+  color: #a12f28;
+}
+
+.did-alert.success {
+  background: #edf8f1;
+  color: #21643b;
+}
+
+.did-verification-result {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 8px;
+  background: #f4f7f5;
+  overflow-wrap: anywhere;
+}
+
+.did-verification-result p {
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .did-page {
+    width: min(100% - 28px, 900px);
+    margin: 35px auto;
+  }
+
+  .did-card {
+    padding: 22px;
+  }
+}
