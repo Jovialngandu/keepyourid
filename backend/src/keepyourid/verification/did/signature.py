@@ -1,15 +1,57 @@
 
+from eth_account import Account
+from eth_account.messages import encode_defunct
+
+
+class SignatureVerificationError(Exception):
+    pass
+
+
+def build_authentication_message(
+    did: str,
+    challenge: str,
+    purpose: str,
+    domain: str,
+    issued_at: str,
+    expires_at: str,
+) -> str:
+    return (
+        "KeepYourID DID Authentication\n"
+        f"DID: {did}\n"
+        f"Challenge: {challenge}\n"
+        f"Purpose: {purpose}\n"
+        f"Domain: {domain}\n"
+        f"Issued At: {issued_at}\n"
+        f"Expires At: {expires_at}"
+    )
+
+
+class EthereumSignatureVerifier:
+    def recover_signer(self, message: str, signature: str) -> str:
+        try:
+            signable_message = encode_defunct(text=message)
+
+            return Account.recover_message(
+                signable_message,
+                signature=signature,
+            )
+
+        except Exception as exc:
+            raise SignatureVerificationError(
+                "Unable to recover signer from signature."
+            ) from exc
+
 from datetime import datetime, timezone
 
-from keepyourid.modules.dids.verification.did_ethr import (
+from keepyourid.verification.did.did_ethr import (
     DIDDocumentValidationError,
     DIDEthrVerifier,
 )
-from keepyourid.modules.dids.verification.interfaces import DIDResolver
-from keepyourid.modules.dids.verification.resolver import (
+from keepyourid.verification.interfaces import DIDResolver
+from keepyourid.verification.resolver import (
     DIDResolutionError,
 )
-from keepyourid.modules.dids.verification.signature import (
+from keepyourid.verification.signature import (
     EthereumSignatureVerifier,
     SignatureVerificationError,
     build_authentication_message,

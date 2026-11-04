@@ -2,7 +2,7 @@ from urllib.parse import quote
 
 import httpx
 
-from keepyourid.modules.dids.verification.interfaces import (
+from keepyourid.verification.interfaces import (
     DIDResolver,
     ResolvedDID,
 )

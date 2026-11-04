@@ -1,7 +1,7 @@
 
 import re
 
-from keepyourid.modules.dids.verification.interfaces import (
+from keepyourid.verification.interfaces import (
     DIDMethodVerifier,
 )
 
