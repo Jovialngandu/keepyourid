@@ -16,7 +16,11 @@ function buildDIDDocument(identifier, address) {
   const methodId = `${identifier}#controller`;
 
   return {
+    "@context": [
+      "https://www.w3.org/ns/did/v1",
+    ],
     id: identifier,
+
     verificationMethod: [
       {
         id: methodId,
@@ -25,7 +29,10 @@ function buildDIDDocument(identifier, address) {
         blockchainAccountId: `eip155:11155111:${address}`,
       },
     ],
+
     authentication: [methodId],
+
+    assertionMethod: [methodId],
   };
 }
 
