@@ -11,6 +11,8 @@ from keepyourid.modules.organizations.service import (
     OrganizationService,
 )
 
+from keepyourid.modules.users.models import User, UserStatus
+from keepyourid.modules.organizations.schemas import OrganizationCreate
 
 def create_organization(
     db_session,
@@ -73,25 +75,29 @@ def test_cannot_reactivate_active_organization(db_session):
         service.reactivate(organization.id)
 
 
-def test_register_organization_starts_pending(db_session):
+def test_register_organization_starts_active(db_session):
+    owner = User(
+        email="owner@example.com",
+        full_name="Organization Owner",
+        password_hash="test-password-hash",
+        status=UserStatus.ACTIVE,
+    )
+    db_session.add(owner)
+    db_session.flush()
+
     service = OrganizationService(db_session)
 
     result = service.register(
-        type(
-            "OrgInput",
-            (),
-            {
-                "legal_name": "Pending Org",
-                "registration_number": "ORG-PENDING-001",
-                "email": "pending@example.com",
-                "phone": None,
-            },
-        )()
+        data=OrganizationCreate(
+            legal_name="Pending Org",
+            registration_number="ORG-PENDING-001",
+            email="pending@example.com",
+            phone=None,
+        ),
+        owner_user=owner,
     )
 
-    assert result.status == OrganizationStatus.PENDING
-
-
+    assert result.status == OrganizationStatus.ACTIVE
 def test_organization_not_found(db_session):
     service = OrganizationService(db_session)
 
