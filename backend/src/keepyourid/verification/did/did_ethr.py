@@ -1,7 +1,7 @@
-
 import re
+from typing import Any
 
-from keepyourid.verification.interfaces import (
+from keepyourid.verification.interfaces.did_method_verifier import (
     DIDMethodVerifier,
 )
 
@@ -11,20 +11,31 @@ class DIDDocumentValidationError(Exception):
 
 
 class DIDEthrVerifier(DIDMethodVerifier):
+
     EXPECTED_CHAIN_ID = "11155111"
 
     DID_PATTERN = re.compile(
         r"^did:ethr:sepolia:(0x[a-fA-F0-9]{40})$"
     )
 
+    ADDRESS_PATTERN = re.compile(
+        r"^0x[a-fA-F0-9]{40}$"
+    )
+
     def validate_did_document(
         self,
         did: str,
-        document: dict,
+        document: dict[str, Any],
     ) -> None:
+
         if not self.DID_PATTERN.fullmatch(did):
             raise DIDDocumentValidationError(
                 "Unsupported DID. Expected did:ethr:sepolia."
+            )
+
+        if not isinstance(document, dict):
+            raise DIDDocumentValidationError(
+                "DID Document must be a JSON object."
             )
 
         if document.get("id") != did:
@@ -34,7 +45,7 @@ class DIDEthrVerifier(DIDMethodVerifier):
 
         methods = document.get("verificationMethod")
 
-        if not isinstance(methods, list):
+        if not isinstance(methods, list) or not methods:
             raise DIDDocumentValidationError(
                 "DID Document has no verification methods."
             )
@@ -49,9 +60,10 @@ class DIDEthrVerifier(DIDMethodVerifier):
     def get_authorized_method(
         self,
         did: str,
-        document: dict,
+        document: dict[str, Any],
         verification_method: str,
     ) -> tuple[str, str]:
+
         methods = document.get("verificationMethod", [])
         authentication = document.get("authentication", [])
 
@@ -60,6 +72,7 @@ class DIDEthrVerifier(DIDMethodVerifier):
         for entry in authentication:
             if isinstance(entry, str):
                 authorized_ids.add(entry)
+
             elif isinstance(entry, dict) and isinstance(entry.get("id"), str):
                 authorized_ids.add(entry["id"])
 
@@ -99,12 +112,15 @@ class DIDEthrVerifier(DIDMethodVerifier):
 
         namespace, chain_id, address = parts
 
-        if namespace != "eip155" or chain_id != self.EXPECTED_CHAIN_ID:
+        if (
+            namespace != "eip155"
+            or chain_id != self.EXPECTED_CHAIN_ID
+        ):
             raise DIDDocumentValidationError(
                 "Verification method belongs to an unsupported network."
             )
 
-        if not re.fullmatch(r"0x[a-fA-F0-9]{40}", address):
+        if not self.ADDRESS_PATTERN.fullmatch(address):
             raise DIDDocumentValidationError(
                 "Invalid Ethereum address in verification method."
             )
