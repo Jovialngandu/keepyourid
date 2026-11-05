@@ -1,14 +1,20 @@
-
 from datetime import datetime, timezone
+from typing import Any
 
-from keepyourid.verification.did_ethr import (
+from keepyourid.verification.did.did_ethr import (
     DIDDocumentValidationError,
     DIDEthrVerifier,
 )
-from keepyourid.verification.interfaces import DIDResolver
-from keepyourid.verification.did.resolver import (
-    DIDResolutionError,
+from keepyourid.verification.interfaces.did_method_verifier import (
+    DIDMethodVerifier,
 )
+from keepyourid.verification.interfaces.did_resolver import (
+    DIDResolver,
+)
+from keepyourid.verification.interfaces.signature_verifier import (
+    SignatureVerifier,
+)
+from keepyourid.verification.did.resolver import DIDResolutionError
 from keepyourid.verification.did.signature import (
     EthereumSignatureVerifier,
     SignatureVerificationError,
@@ -21,11 +27,12 @@ class DIDVerificationError(Exception):
 
 
 class DIDVerificationService:
+
     def __init__(
         self,
         resolver: DIDResolver | None = None,
-        method_verifier: DIDEthrVerifier | None = None,
-        signature_verifier: EthereumSignatureVerifier | None = None,
+        method_verifier: DIDMethodVerifier | None = None,
+        signature_verifier: SignatureVerifier | None = None,
     ):
         self.resolver = resolver
         self.method_verifier = method_verifier or DIDEthrVerifier()
@@ -44,11 +51,17 @@ class DIDVerificationService:
         expires_at: datetime,
         verification_method: str,
         signature: str,
-        did_document: dict | None = None,
-    ) -> dict:
+        did_document: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+
         now = datetime.now(timezone.utc)
 
-        if issued_at.tzinfo is None or expires_at.tzinfo is None:
+        if (
+            issued_at.tzinfo is None
+            or issued_at.utcoffset() is None
+            or expires_at.tzinfo is None
+            or expires_at.utcoffset() is None
+        ):
             raise DIDVerificationError(
                 "Challenge timestamps must be timezone-aware."
             )
@@ -58,14 +71,17 @@ class DIDVerificationService:
                 "Challenge is not currently valid."
             )
 
+        if expires_at <= issued_at:
+            raise DIDVerificationError(
+                "Challenge expiration must be after its issuance."
+            )
+
         if not challenge or not purpose or not domain:
             raise DIDVerificationError(
                 "Challenge context is incomplete."
             )
 
         try:
-            # Use the locally stored document when provided.
-            # Otherwise, fall back to the configured resolver.
             if did_document is None:
                 if self.resolver is None:
                     raise DIDVerificationError(
