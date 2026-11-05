@@ -2,10 +2,8 @@ from urllib.parse import quote
 
 import httpx
 
-from keepyourid.verification.interfaces import (
-    DIDResolver,
-    ResolvedDID,
-)
+from keepyourid.verification.interfaces.did_resolver import DIDResolver
+from keepyourid.verification.results import ResolvedDID
 
 
 class DIDResolutionError(Exception):
@@ -13,6 +11,7 @@ class DIDResolutionError(Exception):
 
 
 class UniversalResolver(DIDResolver):
+
     def __init__(
         self,
         endpoint: str,
@@ -22,7 +21,8 @@ class UniversalResolver(DIDResolver):
         self.timeout = timeout
 
     def resolve(self, did: str) -> ResolvedDID:
-        if not did.startswith("did:"):
+
+        if not isinstance(did, str) or not did.startswith("did:"):
             raise DIDResolutionError("Invalid DID format.")
 
         url = (
@@ -45,15 +45,32 @@ class UniversalResolver(DIDResolver):
 
         try:
             payload = response.json()
+
         except ValueError as exc:
             raise DIDResolutionError(
                 "Invalid resolver response."
             ) from exc
 
-        if payload.get("didResolutionMetadata", {}).get("error"):
+        if not isinstance(payload, dict):
             raise DIDResolutionError(
-                "DID resolution failed: "
-                + str(payload["didResolutionMetadata"]["error"])
+                "Invalid resolver response structure."
+            )
+
+        resolution_metadata = payload.get(
+            "didResolutionMetadata",
+            {},
+        )
+
+        if not isinstance(resolution_metadata, dict):
+            raise DIDResolutionError(
+                "Invalid DID resolution metadata."
+            )
+
+        resolution_error = resolution_metadata.get("error")
+
+        if resolution_error:
+            raise DIDResolutionError(
+                f"DID resolution failed: {resolution_error}"
             )
 
         document = payload.get("didDocument")
@@ -63,8 +80,18 @@ class UniversalResolver(DIDResolver):
                 "Resolver returned no valid DID Document."
             )
 
+        document_metadata = payload.get(
+            "didDocumentMetadata",
+            {},
+        )
+
+        if not isinstance(document_metadata, dict):
+            raise DIDResolutionError(
+                "Invalid DID document metadata."
+            )
+
         return ResolvedDID(
             did=did,
             document=document,
-            metadata=payload.get("didDocumentMetadata", {}),
+            metadata=document_metadata,
         )
