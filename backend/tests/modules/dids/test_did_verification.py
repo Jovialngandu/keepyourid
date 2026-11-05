@@ -5,7 +5,7 @@ import pytest
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
-from keepyourid.verification.interfaces import ResolvedDID
+from keepyourid.verification.interfaces.did_resolver import ResolvedDID
 from keepyourid.verification.did.service import (
     DIDVerificationError,
     DIDVerificationService,
