@@ -13,7 +13,7 @@ from keepyourid.modules.dids.enums import DIDStatus
 from keepyourid.modules.dids.models import DID
 from keepyourid.modules.dids.repository import DIDRepository
 from keepyourid.modules.dids.schemas import DIDCreate, DIDProofSubmission
-from keepyourid.modules.dids.verification.service import (
+from keepyourid.verification.did.service import (
     DIDVerificationService,
 )
 from keepyourid.modules.organizations.enums import OrganizationStatus

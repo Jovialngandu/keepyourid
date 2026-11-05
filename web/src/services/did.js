@@ -1,4 +1,3 @@
-
 import { apiRequest } from "./api";
 
 export function getOrganizationDids(organizationId) {
@@ -30,18 +29,6 @@ export function createDIDChallenge(didId, payload) {
 export function verifyDID(didId, payload) {
   return apiRequest(
     `/dids/${encodeURIComponent(didId)}/verify`,
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
-  );
-}
-
-
-
-export function registerIssuer(organizationId, payload = {}) {
-  return apiRequest(
-    `/issuers/organizations/${encodeURIComponent(organizationId)}/register`,
     {
       method: "POST",
       body: JSON.stringify(payload),

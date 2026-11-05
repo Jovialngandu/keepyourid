@@ -46,9 +46,9 @@ from keepyourid.modules.dids.enums import DIDStatus
 from keepyourid.modules.dids.models import DID
 from keepyourid.modules.dids.schemas import DIDCreate, DIDProofSubmission
 from keepyourid.modules.dids.service import DIDService
-from keepyourid.modules.dids.verification.interfaces import ResolvedDID
-from keepyourid.modules.dids.verification.service import DIDVerificationService
-from keepyourid.modules.dids.verification.signature import (
+from keepyourid.verification.interfaces import ResolvedDID
+from keepyourid.verification.did.service import DIDVerificationService
+from keepyourid.verification.did.signature import (
     build_authentication_message,
 )
 from keepyourid.modules.organizations.enums import OrganizationStatus

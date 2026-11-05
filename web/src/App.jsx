@@ -38,10 +38,6 @@ function App() {
 
             />
 
-			<Route
-  path="/organizations/:organizationId/credentials/new"
-  element={<IssueCredential />}
-/>
 
 <Route
   path="/organizations/:organizationId/credentials"
@@ -53,10 +49,6 @@ function App() {
   element={<CredentialDetails />}
 />
 
-<Route
-  path="/organizations/:organizationId/credentials/new"
-  element={<CredentialCreate />}
-/>
 
 <Route path="/wallet" element={<Wallet />} />
 

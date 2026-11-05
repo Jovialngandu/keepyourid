@@ -1,4 +1,5 @@
 
+import re
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -13,11 +14,7 @@ class IssuerKeyError(Exception):
 
 class IssuerKeyResolver:
     """
-    Resolves an issuer's authorized assertion key from its stored DID Document.
-
-    Supported public key representations:
-    - publicKeyHex
-    - publicKeyJwk using secp256k1
+    Resolves an issuer's authorized Ethereum assertion method.
     """
 
     def __init__(self, session: Session):
@@ -29,10 +26,11 @@ class IssuerKeyResolver:
         if did is None:
             raise IssuerKeyError("Issuer DID not found.")
 
-        if not isinstance(did.document, dict):
+        document = did.document
+
+        if not isinstance(document, dict):
             raise IssuerKeyError("Issuer DID Document is invalid.")
 
-        document = did.document
         verification_methods = document.get("verificationMethod", [])
         assertion_methods = document.get("assertionMethod", [])
 
@@ -45,10 +43,10 @@ class IssuerKeyResolver:
         methods_by_id = {
             method["id"]: method
             for method in verification_methods
-            if isinstance(method, dict) and isinstance(method.get("id"), str)
+            if isinstance(method, dict)
+            and isinstance(method.get("id"), str)
         }
 
-        # Only keys explicitly authorized for assertion are accepted.
         for assertion in assertion_methods:
             if isinstance(assertion, dict):
                 method = assertion
@@ -63,53 +61,30 @@ class IssuerKeyResolver:
             key_id = method.get("id")
             controller = method.get("controller")
 
-            if not isinstance(key_id, str) or not key_id.startswith(
-                f"{did.identifier}#"
-            ):
+            if not isinstance(key_id, str):
+                continue
+
+            if not key_id.startswith(f"{did.identifier}#"):
                 continue
 
             if controller != did.identifier:
                 continue
 
-            public_key = self._extract_public_key(method)
+            account_id = method.get("blockchainAccountId")
 
-            if public_key:
-                return key_id, public_key
+            if not isinstance(account_id, str):
+                continue
+
+            match = re.fullmatch(
+                r"eip155:(\d+):(0x[a-fA-F0-9]{40})",
+                account_id,
+            )
+
+            if not match:
+                continue
+
+            return key_id, match.group(2)
 
         raise IssuerKeyError(
-            "No supported assertion key was found in the issuer DID Document."
+            "No supported Ethereum assertion method was found."
         )
-
-    @staticmethod
-    def _extract_public_key(method: dict) -> str | None:
-        public_key_hex = method.get("publicKeyHex")
-
-        if isinstance(public_key_hex, str):
-            return public_key_hex
-
-        jwk = method.get("publicKeyJwk")
-
-        if not isinstance(jwk, dict):
-            return None
-
-        if jwk.get("kty") != "EC" or jwk.get("crv") != "secp256k1":
-            return None
-
-        x = jwk.get("x")
-        y = jwk.get("y")
-
-        if not isinstance(x, str) or not isinstance(y, str):
-            return None
-
-        import base64
-
-        try:
-            x_bytes = base64.urlsafe_b64decode(x + "=" * (-len(x) % 4))
-            y_bytes = base64.urlsafe_b64decode(y + "=" * (-len(y) % 4))
-        except (ValueError, TypeError):
-            return None
-
-        if len(x_bytes) != 32 or len(y_bytes) != 32:
-            return None
-
-        return "0x" + (x_bytes + y_bytes).hex()

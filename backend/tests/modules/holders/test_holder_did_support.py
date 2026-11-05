@@ -5,7 +5,7 @@ import pytest
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
-from keepyourid.modules.dids.verification.signature import (
+from keepyourid.verification.did.signature import (
     build_authentication_message,
 )
 from keepyourid.modules.holders.challenge_service import HolderDIDChallengeService

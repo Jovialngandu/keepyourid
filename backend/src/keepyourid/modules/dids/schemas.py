@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from keepyourid.modules.dids.enums import DIDStatus
+from typing import Any
 
 
 class DIDCreate(BaseModel):
@@ -50,6 +51,17 @@ class DIDProofSubmission(BaseModel):
     signature: str = Field(pattern=r"^0x[0-9a-fA-F]+$")
 
 
+class DIDBlockchainRegistrationResponse(BaseModel):
+    transaction_id: str | None = None
+    transaction_hash: str | None = None
+    block_number: int | None = None
+    gas_used: int | None = None
+    status: str
+    error: str | None = None
+
+
+
+      
 class DIDVerificationResponse(BaseModel):
     did_id: UUID
     identifier: str
@@ -57,3 +69,19 @@ class DIDVerificationResponse(BaseModel):
     verification_method: str
     signer_address: str
     verified_at: datetime
+    blockchain_registration: DIDBlockchainRegistrationResponse | None = None
+    
+class DIDBlockchainIssuerResponse(BaseModel):
+    did_hash: str
+    metadata_hash: str
+    status: str
+    registered_at: int
+    updated_at: int
+
+
+class DIDBlockchainStatusResponse(BaseModel):
+    did_id: UUID
+    identifier: str
+    registered: bool
+    active: bool
+    issuer: DIDBlockchainIssuerResponse | None = None

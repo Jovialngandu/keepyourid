@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from keepyourid.modules.credentials.models import VerifiableCredential
 from keepyourid.modules.dids.enums import DIDStatus
-from keepyourid.modules.dids.verification.service import DIDVerificationService
+from keepyourid.verification.did.service import DIDVerificationService
 from keepyourid.modules.holders.challenge_service import (
     HolderDIDChallengeService,
     HolderDIDNotFoundError,

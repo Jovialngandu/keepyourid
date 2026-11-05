@@ -5,7 +5,11 @@ import {
   createCredential,
   getCredentials,
   revokeCredential,
+  prepareCredentialIssuance,
+  completeCredentialIssuance,
 } from "../services/credential";
+
+import { connectWallet, signMessage } from "../utils/wallet";
 
 const initialFields = [
   { key: "given_name", label: "Prénom", value: "" },
@@ -51,6 +55,7 @@ export default function Credentials() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [signingId, setSigningId] = useState(null);
 
   const loadCredentials = useCallback(async () => {
     try {
@@ -151,6 +156,52 @@ export default function Credentials() {
       setCreating(false);
     }
   }
+
+
+  async function handleIssue(credentialId) {
+  try {
+    setError("");
+    setSuccess("");
+    setSigningId(credentialId);
+
+    // 1. Connecter le wallet institutionnel
+    const account = await connectWallet();
+
+    // 2. Préparer le credential côté backend
+    const preparation = await prepareCredentialIssuance(
+      organizationId,
+      credentialId
+    );
+
+    // 3. Demander la signature à MetaMask
+    const signature = await signMessage(
+      preparation.signing_input,
+      account
+    );
+
+    // 4. Envoyer la signature au backend
+    const result = await completeCredentialIssuance(
+      organizationId,
+      credentialId,
+      {
+        signature,
+        key_id: preparation.key_id,
+      }
+    );
+
+    setSuccess(
+      `Justificatif émis avec succès : ${result.credential_id}`
+    );
+
+    await loadCredentials();
+  } catch (err) {
+    setError(
+      err.message || "La signature ou l'émission du justificatif a échoué."
+    );
+  } finally {
+    setSigningId(null);
+  }
+}
 
   async function handleRevoke(credentialId) {
     const reason = window.prompt(
@@ -398,10 +449,17 @@ export default function Credentials() {
                         </button>
                       )}
                       {credential.status === "DRAFT" && (
-                        <span className="credentials-pending">
-                          En attente de signature
-                        </span>
-                      )}
+  <button
+    type="button"
+    className="credentials-primary-button"
+    onClick={() => handleIssue(credential.id)}
+    disabled={signingId !== null}
+  >
+    {signingId === credential.id
+      ? "Signature en cours..."
+      : "Signer et émettre"}
+  </button>
+)}
                       {credential.status === "REVOKED" && (
                         <span className="credentials-pending">
                           Révoqué
