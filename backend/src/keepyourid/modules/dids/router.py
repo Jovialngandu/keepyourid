@@ -53,7 +53,7 @@ from keepyourid.modules.dids.schemas import (
     DIDResponse,
     DIDVerificationResponse,
 )
-
+from keepyourid.modules.dids.models import DID
 from keepyourid.config import get_settings
 
 
