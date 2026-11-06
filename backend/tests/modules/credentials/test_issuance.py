@@ -1,12 +1,9 @@
-
 import base64
 import hashlib
 import json
 from datetime import datetime, timezone
-
 import pytest
 from eth_keys import keys
-
 from keepyourid.modules.credentials import service as credential_service_module
 from keepyourid.modules.credentials.enums import CredentialStatus
 from keepyourid.modules.credentials.schemas import CredentialCreate
@@ -18,11 +15,14 @@ from keepyourid.modules.dids.enums import DIDStatus
 from keepyourid.modules.dids.models import DID
 from keepyourid.modules.organizations.enums import OrganizationStatus
 from keepyourid.modules.organizations.models import Organization
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
-
-ISSUER_DID = "did:ethr:sepolia:0x1234567890123456789012345678901234567890"
+TEST_PRIVATE_KEY = keys.PrivateKey(b"\x11" * 32)
+ISSUER_ADDRESS = TEST_PRIVATE_KEY.public_key.to_checksum_address()
+ISSUER_DID = f"did:ethr:sepolia:{ISSUER_ADDRESS}"
 KEY_ID = f"{ISSUER_DID}#controller"
-PUBLIC_KEY = "0x" + "11" * 64
+PUBLIC_KEY = TEST_PRIVATE_KEY.public_key.to_hex()
 
 
 @pytest.fixture
@@ -33,7 +33,6 @@ def issuer(db_session):
 		email="issuer@example.com",
 		status=OrganizationStatus.ACTIVE,
 	)
-
 	db_session.add(organization)
 	db_session.flush()
 
@@ -47,18 +46,15 @@ def issuer(db_session):
 		},
 		status=DIDStatus.VERIFIED,
 	)
-
 	db_session.add(did)
 	db_session.commit()
 	db_session.refresh(organization)
-
 	return organization
 
 
 @pytest.fixture
 def draft_credential(db_session, issuer):
 	service = CredentialService(db_session)
-
 	data = CredentialCreate(
 		credential_type="UniversityDegreeCredential",
 		subject={
@@ -67,9 +63,7 @@ def draft_credential(db_session, issuer):
 		},
 		valid_until=datetime(2030, 1, 1, tzinfo=timezone.utc),
 	)
-
 	return service.create_draft(issuer.id, data)
-
 
 
 @pytest.fixture
@@ -78,22 +72,16 @@ def mocked_signing(monkeypatch):
 
 	def resolve_key(self, credential):
 		state["payload"] = credential.payload
-		return KEY_ID, PUBLIC_KEY
+		return KEY_ID, ISSUER_ADDRESS
 
 	def build_input(payload, key_id):
 		assert key_id == KEY_ID
 		state["payload"] = payload
 		return "header.payload"
 
-	def complete(input_data, signature):
-		assert input_data == "header.payload"
-		return f"{input_data}.{signature}"
-
-	def verify(token, public_key, expected_key_id):
-		assert public_key == PUBLIC_KEY
-		assert expected_key_id == KEY_ID
-		assert token.startswith("header.payload.")
-		return state["payload"]
+	def recover_message(message, signature):
+		assert signature == "valid-signature"
+		return ISSUER_ADDRESS
 
 	monkeypatch.setattr(
 		credential_service_module.IssuerKeyResolver,
@@ -106,16 +94,11 @@ def mocked_signing(monkeypatch):
 		build_input,
 	)
 	monkeypatch.setattr(
-		credential_service_module,
-		"complete_jws",
-		complete,
+		credential_service_module.Account,
+		"recover_message",
+		recover_message,
 	)
-	monkeypatch.setattr(
-		credential_service_module,
-		"verify_jws",
-		verify,
-	)
-
+	return state
 
 
 def test_prepare_issuance_success(
@@ -124,16 +107,16 @@ def test_prepare_issuance_success(
 	mocked_signing,
 ):
 	service = CredentialService(db_session)
-
 	result = service.prepare_issuance(
-		draft_credential.id
-	)
-
+    draft_credential.id,
+    status_list_url=(
+        f"https://issuer.example/status-lists/"
+        f"{draft_credential.issuer_did_id}"
+    ),
+)
 	assert result["key_id"] == KEY_ID
 	assert result["signing_input"] == "header.payload"
-
 	db_session.refresh(draft_credential)
-
 	assert draft_credential.status == CredentialStatus.DRAFT
 	assert draft_credential.signed_credential is None
 
@@ -144,7 +127,6 @@ def test_prepare_issuance_rejects_unknown_credential(
 	from uuid import uuid4
 
 	service = CredentialService(db_session)
-
 	with pytest.raises(CredentialInvalidDataError):
 		service.prepare_issuance(uuid4())
 
@@ -155,19 +137,17 @@ def test_complete_issuance_success(
 	mocked_signing,
 ):
 	service = CredentialService(db_session)
-
 	result = service.complete_issuance(
 		credential_id=draft_credential.id,
 		signature="valid-signature",
 		key_id=KEY_ID,
 	)
-
 	assert result.status == CredentialStatus.ISSUED
-	assert result.signed_credential == (
-		"header.payload.valid-signature"
-	)
-	assert result.proof is None
-	assert result.signed_credential == "header.payload.valid-signature"
+	assert result.proof is not None
+	assert result.proof["signature"] == "valid-signature"
+	signed = json.loads(result.signed_credential)
+	assert signed["credential"] == result.payload
+	assert signed["proof"] == result.proof
 
 
 def test_complete_issuance_rejects_wrong_key_id(
@@ -176,7 +156,6 @@ def test_complete_issuance_rejects_wrong_key_id(
 	mocked_signing,
 ):
 	service = CredentialService(db_session)
-
 	with pytest.raises(
 		CredentialInvalidDataError,
 		match="Signing key does not belong",
@@ -186,9 +165,7 @@ def test_complete_issuance_rejects_wrong_key_id(
 			signature="valid-signature",
 			key_id="did:example:attacker#key-1",
 		)
-
 	db_session.refresh(draft_credential)
-
 	assert draft_credential.status == CredentialStatus.DRAFT
 	assert draft_credential.signed_credential is None
 
@@ -199,19 +176,11 @@ def test_complete_issuance_rejects_invalid_signature(
 	mocked_signing,
 	monkeypatch,
 ):
-	def reject_signature(token, public_key, expected_key_id):
-		raise credential_service_module.JWSVerificationError(
-			"Invalid signature."
-		)
+	def reject_signature(message, signature):
+		raise ValueError("Invalid signature.")
 
-	monkeypatch.setattr(
-		credential_service_module,
-		"verify_jws",
-		reject_signature,
-	)
-
+	monkeypatch.setattr(credential_service_module.Account, "recover_message", reject_signature)
 	service = CredentialService(db_session)
-
 	with pytest.raises(
 		CredentialInvalidDataError,
 		match="signature verification failed",
@@ -221,9 +190,7 @@ def test_complete_issuance_rejects_invalid_signature(
 			signature="invalid-signature",
 			key_id=KEY_ID,
 		)
-
 	db_session.refresh(draft_credential)
-
 	assert draft_credential.status == CredentialStatus.DRAFT
 	assert draft_credential.signed_credential is None
 
@@ -234,13 +201,11 @@ def test_complete_issuance_rejects_already_issued_credential(
 	mocked_signing,
 ):
 	service = CredentialService(db_session)
-
 	service.complete_issuance(
 		credential_id=draft_credential.id,
 		signature="valid-signature",
 		key_id=KEY_ID,
 	)
-
 	with pytest.raises(
 		CredentialInvalidDataError,
 		match="Only draft credentials can be issued",
@@ -258,13 +223,11 @@ def test_get_issuer_signing_key_success(
 	mocked_signing,
 ):
 	service = CredentialService(db_session)
-
 	key_id, public_key = service.get_issuer_signing_key(
 		draft_credential.id
 	)
-
 	assert key_id == KEY_ID
-	assert public_key == PUBLIC_KEY
+	assert public_key == ISSUER_ADDRESS
 
 
 def test_get_issued_credential_returns_signed_value(
@@ -273,18 +236,18 @@ def test_get_issued_credential_returns_signed_value(
 	mocked_signing,
 ):
 	service = CredentialService(db_session)
-
 	issued = service.complete_issuance(
 		credential_id=draft_credential.id,
 		signature="valid-signature",
 		key_id=KEY_ID,
 	)
 	retrieved = service.get(draft_credential.id)
-
 	assert retrieved is not None
 	assert retrieved.status == CredentialStatus.ISSUED
-	assert retrieved.signed_credential == "header.payload.valid-signature"
-	assert issued.signed_credential == retrieved.signed_credential
+	assert retrieved.signed_credential == issued.signed_credential
+	signed = json.loads(retrieved.signed_credential)
+	assert signed["credential"] == retrieved.payload
+	assert signed["proof"] == retrieved.proof
 
 
 def _b64url_encode(data: bytes) -> str:
@@ -369,8 +332,9 @@ def test_issuance_prepare_and_complete_are_organization_scoped(db_session):
 	db_session.add_all([issuer_org, other_org])
 	db_session.flush()
 
-	private_key = keys.PrivateKey(b"\x11" * 32)
+	private_key = TEST_PRIVATE_KEY
 	public_key_hex = private_key.public_key.to_hex()
+
 	issuer_did = DID(
 		organization_id=issuer_org.id,
 		identifier=ISSUER_DID,
@@ -381,6 +345,7 @@ def test_issuance_prepare_and_complete_are_organization_scoped(db_session):
 				"type": "EcdsaSecp256k1VerificationKey2019",
 				"controller": ISSUER_DID,
 				"publicKeyHex": public_key_hex,
+     			"blockchainAccountId": f"eip155:11155111:{ISSUER_ADDRESS}",
 			}],
 			"assertionMethod": [KEY_ID],
 		},
@@ -409,19 +374,45 @@ def test_issuance_prepare_and_complete_are_organization_scoped(db_session):
 			prepare_response = client.post(
 				f"/api/v1/organizations/{issuer_org.id}/credentials/{credential.id}/prepare-issuance"
 			)
+			
+			print("PREPARE STATUS:", prepare_response.status_code)
+			print("PREPARE BODY:", prepare_response.text)
 			assert prepare_response.status_code == 200
 			payload = prepare_response.json()
 			assert payload["key_id"] == KEY_ID
 
 			signing_input = payload["signing_input"]
-			digest = hashlib.sha256(signing_input.encode("ascii")).digest()
-			signature = private_key.sign_msg_hash(digest)
-			signature_b64 = _b64url_encode(signature[:-1])
+			signature = Account.sign_message(
+				encode_defunct(text=signing_input),
+				private_key=private_key.to_bytes(),
+			).signature.hex()
+   
+			status_list_signing_input = payload["status_list_signing_input"]
+
+			status_list_signature = Account.sign_message(
+				encode_defunct(text=status_list_signing_input),
+				private_key=private_key.to_bytes(),
+			).signature.hex()
+
+			status_list_signing_input = payload["status_list_signing_input"]
+
+			status_list_signature = Account.sign_message(
+				encode_defunct(text=status_list_signing_input),
+				private_key=private_key.to_bytes(),
+			).signature.hex()
 
 			complete_response = client.post(
 				f"/api/v1/organizations/{issuer_org.id}/credentials/{credential.id}/complete-issuance",
-				json={"signature": signature_b64, "key_id": KEY_ID},
+				json={
+					"signature": signature,
+					"status_list_signature": status_list_signature,
+					"key_id": KEY_ID,
+				},
 			)
+
+			print("COMPLETE STATUS:", complete_response.status_code)
+			print("COMPLETE BODY:", complete_response.text)
+
 			assert complete_response.status_code == 200
 			assert complete_response.json()["status"] == CredentialStatus.ISSUED.value
 
@@ -432,7 +423,11 @@ def test_issuance_prepare_and_complete_are_organization_scoped(db_session):
 
 			second_complete = client.post(
 				f"/api/v1/organizations/{issuer_org.id}/credentials/{credential.id}/complete-issuance",
-				json={"signature": signature_b64, "key_id": KEY_ID},
+				json={
+					"signature": signature,
+					"status_list_signature": status_list_signature,
+					"key_id": KEY_ID,
+				},
 			)
 			assert second_complete.status_code == 422
 	finally:
