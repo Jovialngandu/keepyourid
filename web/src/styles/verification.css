@@ -335,6 +335,10 @@
   color: var(--color-muted);
 }
 
+.check-unknown {
+  color: #b07d2b;
+}
+
 .verification-errors {
   margin-top: 18px;
   padding: 16px;

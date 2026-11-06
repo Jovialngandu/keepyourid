@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import VerificationResult from "./VerificationResult";
 
@@ -17,6 +17,10 @@ const validResult = {
   errors: [],
 };
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("VerificationResult", () => {
   it("shows a successful verdict", () => {
     render(<VerificationResult result={validResult} />);
@@ -27,6 +31,8 @@ describe("VerificationResult", () => {
   });
 
   it("shows a failed verdict without claiming the credential is valid", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
     render(
       <VerificationResult
         result={{
@@ -40,8 +46,10 @@ describe("VerificationResult", () => {
 
     expect(screen.getByText("Vérification échouée")).toBeTruthy();
     expect(screen.queryByText(/Credential valide/i)).toBeNull();
-    expect(screen.getByText("Credential signature is invalid.")).toBeTruthy();
     expect(screen.getByText("Échoué")).toBeTruthy();
+    // Errors are logged to the console, not displayed in the UI.
+    expect(screen.queryByText("Credential signature is invalid.")).toBeNull();
+    expect(warn).toHaveBeenCalledWith("Credential signature is invalid.");
   });
 
   it("shows non-applicable checks as null", () => {
@@ -55,6 +63,26 @@ describe("VerificationResult", () => {
     );
 
     expect(screen.getByText("Non applicable")).toBeTruthy();
+  });
+
+  it("shows unknown checks as Inconnu without failing the verdict", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(
+      <VerificationResult
+        result={{
+          ...validResult,
+          checks: { ...validResult.checks, issuer_trust: "unknown" },
+          errors: ["Issuer registry configuration is missing."],
+        }}
+      />
+    );
+
+    expect(screen.getByText("Vérification réussie")).toBeTruthy();
+    expect(screen.getByText("Inconnu")).toBeTruthy();
+    expect(
+      screen.queryByText("Issuer registry configuration is missing.")
+    ).toBeNull();
   });
 
   it("shows invalid input errors", () => {
@@ -85,6 +113,8 @@ describe("VerificationResult", () => {
   });
 
   it("shows a revoked credential as failed", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
     render(
       <VerificationResult
         result={{
@@ -97,7 +127,7 @@ describe("VerificationResult", () => {
     );
 
     expect(screen.getByText("Vérification échouée")).toBeTruthy();
-    expect(screen.getByText("Credential is revoked.")).toBeTruthy();
+    expect(screen.queryByText("Credential is revoked.")).toBeNull();
     expect(screen.getByText("Révocation")).toBeTruthy();
     expect(screen.getByText("Échoué")).toBeTruthy();
   });

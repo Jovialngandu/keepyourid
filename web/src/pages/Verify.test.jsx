@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import Verify from "./Verify";
 import { verifyCredential } from "../services/verification";
@@ -63,6 +63,10 @@ describe("Verify page", () => {
     verifyCredential.mockReset();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("verifies a scanned credential and shows the result", async () => {
     verifyCredential.mockResolvedValue(validResult);
 
@@ -74,6 +78,7 @@ describe("Verify page", () => {
   });
 
   it("shows a failed verification without claiming validity", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     verifyCredential.mockResolvedValue({
       ...validResult,
       valid: false,
@@ -86,9 +91,11 @@ describe("Verify page", () => {
 
     expect(await screen.findByText("Vérification échouée")).toBeTruthy();
     expect(screen.queryByText(/Credential valide/i)).toBeNull();
+    // Errors go to the console, not the UI.
     expect(
-      screen.getByText("Credential signature is invalid.")
-    ).toBeTruthy();
+      screen.queryByText("Credential signature is invalid.")
+    ).toBeNull();
+    expect(warn).toHaveBeenCalledWith("Credential signature is invalid.");
   });
 
   it("imports a JSON file and verifies it", async () => {

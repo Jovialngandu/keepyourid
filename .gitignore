@@ -19,3 +19,8 @@ __pycache__/
 # OS
 .DS_Store
 .devin
+tmp
+
+# Smart Contracts artifacts & dependencies
+backend/contracts/artifacts/
+backend/contracts/.deps/

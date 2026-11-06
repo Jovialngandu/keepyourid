@@ -109,14 +109,24 @@ class CredentialVerifier:
 		checks = {
 			"signature": signature_valid,
 			"issuer_did": issuer_valid,
-			"issuer_trust": issuer_trust_valid,
+			"issuer_trust": (
+				"unknown" if issuer_trust_valid is None else issuer_trust_valid
+			),
 			"revocation": revocation_valid,
 			"expiration": expiration_valid,
 		}
 
 
-		# Never report VALID while mandatory checks remain unimplemented.
-		valid = all(value is True for value in checks.values())
+		# issuer_trust is reported for information only and is
+		# temporarily excluded from the global verdict (MVP decision).
+		blocking_checks = {
+			"signature": signature_valid,
+			"issuer_did": issuer_valid,
+			"revocation": revocation_valid,
+			"expiration": expiration_valid,
+		}
+
+		valid = all(value is True for value in blocking_checks.values())
 
 		return VerificationResult(
 			valid=valid,
