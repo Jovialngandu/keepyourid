@@ -39,8 +39,8 @@ httptools==0.9.0
 httpx==0.28.1
 idna==3.20
 iniconfig==2.3.1
--e git+https://github.com/Jovialngandu/keepyourid.git@01d58b323752241d95c844a2ad7c7202d0567674#egg=keepyourid_backend&subdirectory=backend
--e git+https://github.com/Jovialngandu/keepyourid.git@01d58b323752241d95c844a2ad7c7202d0567674#egg=keepyourid_verifier&subdirectory=verification-engine
+-e git+https://github.com/Jovialngandu/keepyourid.git@c0152d8f924e1395513cb9e9bf524244c477b21a#egg=keepyourid_backend&subdirectory=backend
+-e git+https://github.com/Jovialngandu/keepyourid.git@c0152d8f924e1395513cb9e9bf524244c477b21a#egg=keepyourid_verifier&subdirectory=verification-engine
 Mako==1.4.3
 MarkupSafe==3.0.4
 multidict==7.1.0
@@ -75,6 +75,7 @@ typing-inspection==0.4.4
 typing_extensions==4.16.0
 urllib3==2.8.0
 uvicorn==0.54.0
+uvicorn-worker==0.4.0
 uvloop==0.23.0
 watchfiles==1.3.0
 web3==8.0.0
