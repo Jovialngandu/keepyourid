@@ -4,9 +4,10 @@ import { Link, useParams } from "react-router-dom";
 import {
   createCredential,
   getCredentials,
-  revokeCredential,
   prepareCredentialIssuance,
   completeCredentialIssuance,
+  prepareCredentialRevocation,
+  completeCredentialRevocation,
 } from "../services/credential";
 
 import { connectWallet, signMessage } from "../utils/wallet";
@@ -158,7 +159,7 @@ export default function Credentials() {
   }
 
 
-  async function handleIssue(credentialId) {
+async function handleIssue(credentialId) {
   try {
     setError("");
     setSuccess("");
@@ -167,24 +168,31 @@ export default function Credentials() {
     // 1. Connecter le wallet institutionnel
     const account = await connectWallet();
 
-    // 2. Préparer le credential côté backend
+    // 2. Préparer l'émission
     const preparation = await prepareCredentialIssuance(
       organizationId,
       credentialId
     );
 
-    // 3. Demander la signature à MetaMask
+    // 3. Signer le credential
     const signature = await signMessage(
       preparation.signing_input,
       account
     );
 
-    // 4. Envoyer la signature au backend
+    // 4. Signer le Status List
+    const statusListSignature = await signMessage(
+      preparation.status_list_signing_input,
+      account
+    );
+
+    // 5. Finaliser l'émission
     const result = await completeCredentialIssuance(
       organizationId,
       credentialId,
       {
         signature,
+        status_list_signature: statusListSignature,
         key_id: preparation.key_id,
       }
     );
@@ -194,6 +202,7 @@ export default function Credentials() {
     );
 
     await loadCredentials();
+
   } catch (err) {
     setError(
       err.message || "La signature ou l'émission du justificatif a échoué."
@@ -203,25 +212,45 @@ export default function Credentials() {
   }
 }
 
-  async function handleRevoke(credentialId) {
-    const reason = window.prompt(
-      "Pourquoi souhaitez-vous révoquer ce justificatif ?"
+ async function handleRevoke(credentialId) {
+
+	alert("La révocation d'un justificatif est une action irréversible. Veuillez confirmer que vous souhaitez révoquer ce justificatif.");
+  try {
+    setError("");
+    setSuccess("");
+
+    const account = await connectWallet();
+
+    // 1. Préparer la révocation
+    const preparation = await prepareCredentialRevocation(
+      organizationId,
+      credentialId
     );
 
-    if (!reason?.trim()) return;
+    // 2. Signer le nouveau Status List
+    const signature = await signMessage(
+      preparation.signing_input,
+      account
+    );
 
-    try {
-      setError("");
-      setSuccess("");
+    // 3. Finaliser la révocation
+    const result = await completeCredentialRevocation(
+      organizationId,
+      credentialId,
+      {
+        signature,
+        key_id: preparation.key_id,
+      }
+    );
 
-      await revokeCredential(organizationId, credentialId, reason.trim());
+    setSuccess("Credential révoqué avec succès.");
 
-      setSuccess("Le justificatif a été révoqué.");
-      await loadCredentials();
-    } catch (err) {
-      setError(err.message || "La révocation a échoué.");
-    }
+    await loadCredentials();
+
+  } catch (err) {
+    setError(err.message || "La révocation a échoué.");
   }
+}
 
   return (
     <main className="credentials-page">

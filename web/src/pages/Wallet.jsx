@@ -1,41 +1,247 @@
-import { useEffect, useState } from "react";
+
+import { useCallback, useEffect, useState } from "react";
+
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
-import { connectWallet } from "../utils/wallet";
+
+import {
+  connectWallet,
+  signMessage,
+} from "../utils/wallet";
+
+import {
+  getHolderDIDs,
+  registerHolderDID,
+  createHolderDIDChallenge,
+  verifyHolderDID,
+  getHolderCredentials,
+} from "../services/holder";
+
 import "../styles/Wallet.css";
 
 const SEPOLIA_CHAIN_ID = "0xaa36a7";
+const DID_PURPOSE = "did_authentication";
 
 function shortenAddress(value) {
   if (!value) return "";
   return `${value.slice(0, 8)}...${value.slice(-6)}`;
 }
 
+function extractItems(result) {
+  if (Array.isArray(result)) return result;
+  if (Array.isArray(result?.items)) return result.items;
+  if (Array.isArray(result?.results)) return result.results;
+  if (Array.isArray(result?.data)) return result.data;
+  return [];
+}
+
+function buildHolderDIDDocument(did, account) {
+  const verificationMethod = `${did}#controller`;
+
+  return {
+    id: did,
+    verificationMethod: [
+      {
+        id: verificationMethod,
+        type: "EcdsaSecp256k1RecoveryMethod2020",
+        controller: did,
+        blockchainAccountId: `eip155:11155111:${account}`,
+      },
+    ],
+    authentication: [verificationMethod],
+  };
+}
+
 export default function Wallet() {
   const [account, setAccount] = useState("");
   const [chainId, setChainId] = useState("");
+
+  const [holderDID, setHolderDID] = useState(null);
+  const [credentials, setCredentials] = useState([]);
+
   const [connecting, setConnecting] = useState(false);
+  const [loadingCredentials, setLoadingCredentials] = useState(false);
+
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const did = account ? `did:ethr:sepolia:${account}` : "";
+  const [verified, setVerified] = useState(false);
+
+  const did = account
+    ? `did:ethr:sepolia:${account}`
+    : "";
+
   const connected = Boolean(account);
   const correctNetwork = chainId === SEPOLIA_CHAIN_ID;
+
+  // Récupérer les credentials du titulaire.
+  const loadCredentials = useCallback(async () => {
+    setLoadingCredentials(true);
+
+    try {
+      const result = await getHolderCredentials();
+      setCredentials(extractItems(result));
+    } catch (err) {
+      setError(
+        err.message || "Impossible de charger vos credentials."
+      );
+    } finally {
+      setLoadingCredentials(false);
+    }
+  }, []);
+
+  // Récupérer ou créer le DID associé à l'utilisateur connecté.
+  async function getOrCreateHolderDID(identifier, document) {
+    const result = await getHolderDIDs();
+    const existingDIDs = extractItems(result);
+
+    const existingDID = existingDIDs.find(
+      (item) => item.identifier === identifier
+    );
+
+    if (existingDID) {
+      return existingDID;
+    }
+
+    return registerHolderDID({
+      identifier,
+      method: "ethr",
+      document,
+    });
+  }
+
+  // Associer le DID, signer le challenge et vérifier la preuve.
+  async function authenticateHolder(address) {
+
+
+	
+    const identifier = `did:ethr:sepolia:${address}`;
+    const document = buildHolderDIDDocument(
+      identifier,
+      address
+    );
+
+    // 1. Association du DID au compte utilisateur.
+    const registeredDID = await getOrCreateHolderDID(
+      identifier,
+      document
+    );
+
+    if (!registeredDID?.id) {
+      throw new Error(
+        "Le backend n'a pas retourné l'identifiant du DID."
+      );
+    }
+
+
+		
+
+    setHolderDID(registeredDID);
+
+    // 2. Création du challenge.
+    const purpose = DID_PURPOSE;
+    const domain = window.location.host;
+
+
+
+	
+    const challenge = await createHolderDIDChallenge(
+      registeredDID.id,
+      {
+        purpose,
+        domain,
+      }
+    );
+
+    if (!challenge?.message || !challenge?.challenge_id) {
+      throw new Error(
+        "Le backend a retourné un challenge incomplet."
+      );
+    }
+
+    // 3. Signature du message exact retourné par le backend.
+    const verificationMethod = `${identifier}#controller`;
+
+
+
+console.log("ACCOUNT USED:", address);
+console.log("DID:", identifier);
+console.log("MESSAGE:", challenge.message);
+
+const activeAccounts = await window.ethereum.request({
+  method: "eth_accounts",
+});
+console.log("METAMASK ACTIVE ACCOUNT:", activeAccounts[0]);
+
+if (activeAccounts[0]?.toLowerCase() !== address.toLowerCase()) {
+  throw new Error("Le compte MetaMask actif ne correspond pas au compte utilisé pour le DID.");
+}
+
+    const signature = await signMessage(
+      challenge.message,
+      address
+    );
+    console.log("SIGNATURE:", signature);
+
+    // 4. Vérification cryptographique côté backend.
+    const verification = await verifyHolderDID(
+      registeredDID.id,
+      {
+        challenge_id: challenge.challenge_id,
+        signature,
+        verification_method: verificationMethod,
+        purpose,
+        domain,
+      }
+    );
+
+    // Une réponse HTTP réussie signifie que le backend
+    // a accepté la preuve.
+    setVerified(true);
+
+    setHolderDID((previous) => ({
+      ...previous,
+      ...registeredDID,
+      status: verification?.status || "VERIFIED",
+    }));
+
+    // 5. Chargement des credentials du titulaire.
+    await loadCredentials();
+  }
 
   async function handleConnect() {
     setConnecting(true);
     setError("");
 
     try {
-      const address = await connectWallet();
+      let address = account;
+
+      if (!address) {
+        address = await connectWallet();
+      } else if (!correctNetwork) {
+        address = await connectWallet();
+      }
+
       const network = await window.ethereum.request({
         method: "eth_chainId",
       });
 
       setAccount(address);
       setChainId(network);
+
+      if (network !== SEPOLIA_CHAIN_ID) {
+        throw new Error(
+          "Connecte ton wallet au réseau Sepolia."
+        );
+      }
+
+      await authenticateHolder(address);
+
     } catch (err) {
-      setError(err.message || "Impossible de connecter le wallet.");
+      setVerified(false);
+      setError(
+        err.message || "Une erreur est survenue pendant la connexion."
+      );
     } finally {
       setConnecting(false);
     }
@@ -53,32 +259,68 @@ export default function Wallet() {
     }
   }
 
+  // Écouter les changements de compte et de réseau MetaMask.
   useEffect(() => {
     if (!window.ethereum) return;
 
+    async function initializeWallet() {
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts",
+        });
+
+        const network = await window.ethereum.request({
+          method: "eth_chainId",
+        });
+
+        setAccount(accounts?.[0] || "");
+        setChainId(network);
+      } catch {
+        // Le wallet pourra être connecté manuellement.
+      }
+    }
+
     function handleAccountsChanged(accounts) {
       setAccount(accounts?.[0] || "");
+      setHolderDID(null);
+      setCredentials([]);
+      setVerified(false);
       setError("");
     }
 
     function handleChainChanged(network) {
       setChainId(network);
+      setHolderDID(null);
+      setCredentials([]);
+      setVerified(false);
 
       if (network !== SEPOLIA_CHAIN_ID) {
-        setError("Veuillez reconnecter votre wallet au réseau Sepolia.");
+        setError(
+          "Veuillez reconnecter votre wallet au réseau Sepolia."
+        );
       } else {
         setError("");
       }
     }
 
-    window.ethereum.on("accountsChanged", handleAccountsChanged);
-    window.ethereum.on("chainChanged", handleChainChanged);
+    initializeWallet();
+
+    window.ethereum.on(
+      "accountsChanged",
+      handleAccountsChanged
+    );
+
+    window.ethereum.on(
+      "chainChanged",
+      handleChainChanged
+    );
 
     return () => {
       window.ethereum.removeListener(
         "accountsChanged",
         handleAccountsChanged
       );
+
       window.ethereum.removeListener(
         "chainChanged",
         handleChainChanged
@@ -96,7 +338,9 @@ export default function Wallet() {
             <span className="wallet-eyebrow">
               IDENTITÉ NUMÉRIQUE PERSONNELLE
             </span>
+
             <h1>Mon Wallet</h1>
+
             <p>
               Votre identité numérique, vos credentials et vos preuves
               vérifiables réunis dans un espace personnel.
@@ -123,8 +367,8 @@ export default function Wallet() {
             <h2>Commencez avec votre wallet</h2>
 
             <p>
-              Connectez MetaMask pour créer votre identité décentralisée
-              à partir de votre adresse Ethereum.
+              Connectez MetaMask pour associer votre identité
+              décentralisée à votre compte KeepYourID.
             </p>
 
             <button
@@ -132,13 +376,16 @@ export default function Wallet() {
               onClick={handleConnect}
               disabled={connecting}
             >
-              {connecting ? "Connexion en cours..." : "Connecter MetaMask"}
+              {connecting
+                ? "Connexion en cours..."
+                : "Connecter MetaMask"}
+
               {!connecting && <span>→</span>}
             </button>
 
             <small>
-              Réseau requis : Ethereum Sepolia. Votre clé privée reste
-              dans votre wallet.
+              Réseau requis : Ethereum Sepolia. Votre clé privée
+              reste dans votre wallet.
             </small>
           </section>
         ) : (
@@ -146,16 +393,23 @@ export default function Wallet() {
             <section className="wallet-overview">
               <div className="wallet-overview-heading">
                 <div>
-                  <span className="wallet-eyebrow">MON IDENTITÉ</span>
+                  <span className="wallet-eyebrow">
+                    MON IDENTITÉ
+                  </span>
+
                   <h2>Identité décentralisée</h2>
                 </div>
 
                 <span
                   className={`wallet-status ${
-                    correctNetwork ? "wallet-status-connected" : ""
+                    correctNetwork
+                      ? "wallet-status-connected"
+                      : ""
                   }`}
                 >
-                  {correctNetwork ? "Wallet connecté" : "Réseau incorrect"}
+                  {correctNetwork
+                    ? "Wallet connecté"
+                    : "Réseau incorrect"}
                 </span>
               </div>
 
@@ -164,7 +418,9 @@ export default function Wallet() {
 
                 <div className="wallet-identity-content">
                   <span>HOLDER DID</span>
+
                   <strong>{shortenAddress(account)}</strong>
+
                   <small>{did}</small>
                 </div>
 
@@ -191,19 +447,34 @@ export default function Wallet() {
 
                 <div className="wallet-information-item">
                   <span>Statut DID</span>
-                  <strong className="wallet-unverified">
-                    Non vérifié par le backend
+
+                  <strong
+                    className={
+                      verified
+                        ? "wallet-status-connected"
+                        : "wallet-unverified"
+                    }
+                  >
+                    {verified
+                      ? "Vérifié par le backend"
+                      : holderDID
+                        ? holderDID.status || "Associé, non vérifié"
+                        : "Non associé"}
                   </strong>
                 </div>
               </div>
 
-              {!correctNetwork && (
+              {!verified && (
                 <button
                   className="wallet-primary-button"
                   onClick={handleConnect}
-                  disabled={connecting}
+                  disabled={connecting || !correctNetwork}
                 >
-                  Reconnecter sur Sepolia
+                  {connecting
+                    ? "Vérification en cours..."
+                    : holderDID
+                      ? "Vérifier mon DID"
+                      : "Associer et vérifier mon DID"}
                 </button>
               )}
             </section>
@@ -211,31 +482,81 @@ export default function Wallet() {
             <section className="wallet-section">
               <div className="wallet-section-heading">
                 <div>
-                  <span className="wallet-eyebrow">MES DOCUMENTS</span>
+                  <span className="wallet-eyebrow">
+                    MES DOCUMENTS
+                  </span>
+
                   <h2>Mes credentials</h2>
                 </div>
-                <span className="wallet-count">0 document</span>
+
+                <span className="wallet-count">
+                  {loadingCredentials
+                    ? "Chargement..."
+                    : `${credentials.length} document(s)`}
+                </span>
               </div>
 
-              <div className="wallet-empty-state">
-                <div className="wallet-empty-icon">▤</div>
-                <h3>Aucune credential pour le moment</h3>
-                <p>
-                  Les attestations et documents numériques qui vous seront
-                  délivrés apparaîtront ici.
-                </p>
-                <span>Réception des credentials à venir</span>
-              </div>
+              {credentials.length > 0 ? (
+                <div className="wallet-credentials-list">
+                  {credentials.map((credential) => (
+                    <div
+                      className="wallet-credential-item"
+                      key={credential.id}
+                    >
+                      <div>
+                        <strong>
+                          {credential.type?.join(", ") ||
+                            credential.credential_type ||
+                            "Verifiable Credential"}
+                        </strong>
+
+                        <small>
+                          {credential.id}
+                        </small>
+                      </div>
+
+                      <span>
+                        {credential.status || "Émise"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="wallet-empty-state">
+                  <div className="wallet-empty-icon">▤</div>
+
+                  <h3>
+                    {loadingCredentials
+                      ? "Chargement de vos credentials..."
+                      : "Aucune credential pour le moment"}
+                  </h3>
+
+                  <p>
+                    Les attestations et documents numériques qui
+                    vous seront délivrés apparaîtront ici.
+                  </p>
+
+                  <span>
+                    Réception des credentials
+                  </span>
+                </div>
+              )}
             </section>
 
             <section className="wallet-security-note">
               <div>◇</div>
+
               <p>
-                <strong>Votre identité reste sous votre contrôle.</strong>
+                <strong>
+                  Votre identité reste sous votre contrôle.
+                </strong>
                 <br />
-                Cette première version affiche votre DID dérivé de MetaMask.
-                La vérification cryptographique par le backend et le stockage
-                des credentials seront intégrés dans les prochaines étapes.
+
+                Votre DID est associé à votre compte KeepYourID.
+                La preuve de contrôle est signée dans MetaMask
+                et vérifiée cryptographiquement par le backend.
+                Vos credentials sont chargés depuis votre espace
+                titulaire.
               </p>
             </section>
           </>

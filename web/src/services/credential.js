@@ -69,16 +69,41 @@ export function completeCredentialIssuance(
   );
 }
 
-export function revokeCredential(organizationId, credentialId, reason) {
+// export function revokeCredential(organizationId, credentialId, reason) {
+//   return apiRequest(
+//     `/organizations/${organizationId}/credentials/${credentialId}/revoke`,
+//     {
+//       method: "POST",
+//       body: JSON.stringify({ reason }),
+//     }
+//   );
+// }
+
+
+
+export function prepareCredentialRevocation(
+  organizationId,
+  credentialId
+) {
   return apiRequest(
-    `/organizations/${organizationId}/credentials/${credentialId}/revoke`,
-    {
-      method: "POST",
-      body: JSON.stringify({ reason }),
-    }
+    `/organizations/${organizationId}/credentials/${credentialId}/prepare-revocation`,
+    { method: "POST" }
   );
 }
 
+export function completeCredentialRevocation(
+  organizationId,
+  credentialId,
+  payload
+) {
+  return apiRequest(
+    `/organizations/${organizationId}/credentials/${credentialId}/complete-revocation`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
 
 
 
