@@ -1,6 +1,6 @@
 {
   "credential": {
-    "id": "urn:uuid:8cb2d59c-73cf-4d4c-983f-54adee25a2ed",
+    "id": "urn:uuid:7c83914a-6a88-4502-b543-3c6a5ff9ac0d",
     "type": [
       "VerifiableCredential",
       "IdentityCredential"
@@ -9,25 +9,25 @@
     "@context": [
       "https://www.w3.org/ns/credentials/v2"
     ],
-    "validFrom": "2026-11-05T19:46:17.632166+00:00",
-    "validUntil": "2026-12-18T00:46:00+00:00",
+    "validFrom": "2026-11-06T08:49:36.415854+00:00",
+    "validUntil": "2026-11-19T12:49:00+00:00",
     "credentialStatus": {
-      "id": "http://localhost:8001/organizations/e01ca2c9-e953-414a-bf15-261dc284b107/credentials/status-lists/d04aae6e-7e16-4772-adbe-508361f48e1c#0",
+      "id": "http://localhost:8001/organizations/e01ca2c9-e953-414a-bf15-261dc284b107/credentials/status-lists/d04aae6e-7e16-4772-adbe-508361f48e1c#3",
       "type": "BitstringStatusListEntry",
       "statusPurpose": "revocation",
-      "statusListIndex": "0",
+      "statusListIndex": "3",
       "statusListCredential": "http://localhost:8001/organizations/e01ca2c9-e953-414a-bf15-261dc284b107/credentials/status-lists/d04aae6e-7e16-4772-adbe-508361f48e1c"
     },
     "credentialSubject": {
       "id": "did:ethr:sepolia:0x6bbf88c791e5b511046d5a7cd2190f1793b4fb69",
-      "given_name": "johnclient",
-      "family_name": "johnclient"
+      "given_name": "johnrevoke",
+      "family_name": "johnrevoke"
     }
   },
   "proof": {
     "type": "Eip191PersonalSignature",
     "verificationMethod": "did:ethr:sepolia:0xe574045db2e600e9a7836f5f3785ac43aa977bd3#controller",
     "signer": "0xe574045db2e600e9a7836f5f3785ac43aa977bd3",
-    "signature": "0x33f37e8d286f70c7b8a63faf06fed59866f0ca774e015eaf4a4e7cfd3f965eaa2c71afd9074b00db19a611100197f2e8ca5d97bde86af464d9eca04a68476ec21b"
+    "signature": "0x163f2bcb079ec1c36ceb25bb09a11b1c3d674c85e856d5687b4cb0eedc1e94276db01f39d192fb5ac599da6281641aebc7e44959555bccda9594282db84217ce1b"
   }
 }

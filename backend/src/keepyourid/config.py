@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     blockchain_tx_timeout: int = 120
     blockchain_private_key: SecretStr | None = None
 
+    # Credential verification
+    credential_status_list_allowed_hosts: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -125,14 +125,42 @@ class CredentialService:
 		):
 			raise CredentialInvalidDataError(
 				"A specific credential type is required."
-			)
-
+					)
 		holder_did: HolderDID | None = None
-		if data.holder_did_id is not None:
-			holder_did = self.session.get(HolderDID, data.holder_did_id)
+		holder_did_id = data.holder_did_id
+
+		subject_did = data.subject.get("id")
+
+		if holder_did_id is not None:
+			holder_did = self.session.get(HolderDID, holder_did_id)
+
 			if holder_did is None:
 				raise CredentialInvalidDataError("Holder DID not found.")
 
+		elif subject_did:
+			holder_did = (
+				self.session.query(HolderDID)
+				.filter(HolderDID.identifier == subject_did)
+				.one_or_none()
+			)
+
+			if holder_did is None:
+				raise CredentialInvalidDataError(
+					"No registered Holder DID matches the credential subject."
+				)
+
+		if holder_did is not None:
+			if holder_did.status != DIDStatus.VERIFIED:
+				raise CredentialInvalidDataError(
+					"Holder DID must be verified first."
+				)
+
+			if subject_did != holder_did.identifier:
+				raise CredentialInvalidDataError(
+					"Credential subject DID does not match the Holder DID."
+				)
+
+			holder_did_id = holder_did.id
 		credential_uuid = uuid4()
 		credential_identifier = f"urn:uuid:{credential_uuid}"
 
@@ -158,7 +186,7 @@ class CredentialService:
 			credential_id=credential_identifier,
 			organization_id=organization_id,
 			issuer_did_id=did.id,
-			holder_did_id=data.holder_did_id,
+			holder_did_id=holder_did_id,
 			credential_type=credential_type,
 			credential_subject=data.subject,
 			payload=payload,
