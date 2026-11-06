@@ -23,14 +23,16 @@ def verify_issuer_trust(
     issuer_did: str,
     rpc_url: str,
     registry_address: str,
-    expected_chain_id: int = 31337,
-) -> tuple[bool, str | None]:
+    expected_chain_id: int = 11155111,
+) -> tuple[bool | None, str | None]:
+    """Return (True, None) on success, (False, msg) on definitive failure,
+    and (None, msg) when trust cannot be determined (UNKNOWN)."""
 
     if not all([issuer_did, rpc_url, registry_address]):
-        return False, "Issuer registry configuration is missing."
+        return None, "Issuer registry configuration is missing."
 
     if not Web3.is_address(registry_address):
-        return False, "Invalid IssuerRegistry address."
+        return None, "Invalid IssuerRegistry address."
 
     try:
         web3 = Web3(
@@ -41,10 +43,10 @@ def verify_issuer_trust(
         )
 
         if not web3.is_connected():
-            return False, "Unable to connect to issuer registry."
+            return None, "Issuer registry is currently unavailable."
 
         if web3.eth.chain_id != expected_chain_id:
-            return False, "Unexpected blockchain network."
+            return None, "Unexpected blockchain network."
 
         contract = web3.eth.contract(
             address=Web3.to_checksum_address(registry_address),
@@ -66,4 +68,4 @@ def verify_issuer_trust(
         return True, None
 
     except Exception as exc:
-        return False, f"Issuer trust verification failed: {exc}"
+        return None, f"Issuer trust verification failed: {exc}"
