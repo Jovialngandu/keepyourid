@@ -58,15 +58,6 @@ class CredentialSigningRequest(BaseModel):
 #     signed_credential: str
 
 
-class CredentialIssuancePreparationResponse(BaseModel):
-    signing_input: str
-    key_id: str
-
-
-class CredentialIssuanceCompletion(BaseModel):
-    signature: str = Field(min_length=1)
-    key_id: str = Field(min_length=1)
-
 
 class CredentialRevocationRequest(BaseModel):
     reason: str | None = Field(default=None, max_length=1000)
@@ -78,3 +69,29 @@ class CredentialIssuanceResponse(BaseModel):
     status: CredentialStatus
     signed_credential: str
     proof: dict | None = None
+
+
+class CredentialIssuancePreparationResponse(BaseModel):
+    signing_input: str
+    key_id: str
+    status_list_signing_input: str
+    status_list_url: str
+    status_list_index: int
+
+
+class CredentialIssuanceCompletion(BaseModel):
+    signature: str = Field(min_length=1)
+    status_list_signature: str = Field(min_length=1)
+    key_id: str = Field(min_length=1)
+    
+    
+class CredentialRevocationPreparationResponse(BaseModel):
+    signing_input: str
+    key_id: str
+    status_list_url: str
+    status_list_index: int
+
+
+class CredentialRevocationCompletion(BaseModel):
+    signature: str = Field(min_length=1)
+    key_id: str = Field(min_length=1)

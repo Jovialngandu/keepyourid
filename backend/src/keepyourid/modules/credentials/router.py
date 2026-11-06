@@ -1,7 +1,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status,Request
 from sqlalchemy.orm import Session
 
 from keepyourid.core.dependencies import get_db
@@ -21,6 +21,18 @@ from keepyourid.modules.credentials.service import (
     CredentialOrganizationInactiveError,
     CredentialOrganizationNotFoundError,
     CredentialService,
+)
+
+import json
+
+from sqlalchemy import select
+from keepyourid.modules.credentials.status_list_model import (
+    CredentialStatusList,
+)
+
+from keepyourid.modules.credentials.schemas import (
+	CredentialRevocationCompletion,
+	CredentialRevocationPreparationResponse
 )
 
 router = APIRouter(
@@ -127,24 +139,34 @@ def get_credential(
 def prepare_credential_issuance(
     organization_id: UUID,
     credential_id: UUID,
+    request: Request,
     service: CredentialService = Depends(get_credential_service),
 ):
     try:
+        credential = service.get(credential_id, organization_id)
+
+        if credential is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Credential not found.",
+            )
+
+        status_list_url = (
+            str(request.base_url).rstrip("/")
+            + f"/organizations/{organization_id}"
+            + f"/credentials/status-lists/{credential.issuer_did_id}"
+        )
+
         return service.prepare_issuance(
             credential_id=credential_id,
             organization_id=organization_id,
+            status_list_url=status_list_url,
         )
     except CredentialInvalidDataError as exc:
-        status_code = (
-            status.HTTP_404_NOT_FOUND
-            if str(exc) == "Credential not found."
-            else status.HTTP_422_UNPROCESSABLE_ENTITY
-        )
         raise HTTPException(
-            status_code=status_code,
+            status_code=422,
             detail=str(exc),
         ) from exc
-
 
 @router.post(
     "/{credential_id}/complete-issuance",
@@ -160,6 +182,7 @@ def complete_credential_issuance(
         return service.complete_issuance(
             credential_id=credential_id,
             signature=data.signature,
+            status_list_signature=data.status_list_signature,
             key_id=data.key_id,
             organization_id=organization_id,
         )
@@ -176,28 +199,62 @@ def complete_credential_issuance(
 
 
 @router.post(
-    "/{credential_id}/revoke",
-    response_model=CredentialResponse,
+    "/{credential_id}/prepare-revocation",
+    response_model=CredentialRevocationPreparationResponse,
 )
-def revoke_credential(
+def prepare_credential_revocation(
     organization_id: UUID,
     credential_id: UUID,
-    data: CredentialRevocationRequest,
     service: CredentialService = Depends(get_credential_service),
 ):
     try:
-        return service.revoke(
+        return service.prepare_revocation(
             credential_id=credential_id,
             organization_id=organization_id,
-            reason=data.reason,
         )
     except CredentialInvalidDataError as exc:
-        status_code = (
-            status.HTTP_404_NOT_FOUND
-            if str(exc) == "Credential not found."
-            else status.HTTP_422_UNPROCESSABLE_ENTITY
+        code = 404 if str(exc) == "Credential not found." else 422
+        raise HTTPException(status_code=code, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{credential_id}/complete-revocation",
+    response_model=CredentialResponse,
+)
+def complete_credential_revocation(
+    organization_id: UUID,
+    credential_id: UUID,
+    data: CredentialRevocationCompletion,
+    service: CredentialService = Depends(get_credential_service),
+):
+    try:
+        return service.complete_revocation(
+            credential_id=credential_id,
+            organization_id=organization_id,
+            signature=data.signature,
+            key_id=data.key_id,
         )
+    except CredentialInvalidDataError as exc:
+        code = 404 if str(exc) == "Credential not found." else 422
+        raise HTTPException(status_code=code, detail=str(exc)) from exc
+        
+
+@router.get("/status-lists/{issuer_did_id}")
+def get_public_status_list(
+    organization_id: UUID,
+    issuer_did_id: UUID,
+    service: CredentialService = Depends(get_credential_service),
+):
+    status_list = service.session.scalar(
+        select(CredentialStatusList).where(
+            CredentialStatusList.issuer_did_id == issuer_did_id
+        )
+    )
+
+    if status_list is None or not status_list.signed_credential:
         raise HTTPException(
-            status_code=status_code,
-            detail=str(exc),
-        ) from exc
+            status_code=404,
+            detail="Status list not published.",
+        )
+
+    return json.loads(status_list.signed_credential)

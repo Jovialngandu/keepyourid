@@ -30,7 +30,12 @@ import json
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from eth_utils import to_checksum_address
+from keepyourid.modules.credentials.status_list_model import (
+    CredentialStatusList,
+)
 
+import base64
+import gzip
 
 class CredentialOrganizationNotFoundError(Exception):
 	pass
@@ -253,8 +258,8 @@ class CredentialService:
 		self,
 		credential_id: UUID,
 		organization_id: UUID | None = None,
+		status_list_url: str | None = None,
 	) -> dict:
-
 		credential = self.get(credential_id, organization_id)
 
 		if credential is None:
@@ -265,17 +270,91 @@ class CredentialService:
 				"Only draft credentials can be issued."
 			)
 
+		if not status_list_url:
+			raise CredentialInvalidDataError(
+				"Status list URL is required."
+			)
+
 		key_id, issuer_address = self._resolve_issuer_key(credential)
 
-		signing_input = build_signing_input(
+		issuer_did = self.session.get(DID, credential.issuer_did_id)
+
+		if issuer_did is None:
+			raise CredentialInvalidDataError("Issuer DID not found.")
+
+		statement = (
+			select(CredentialStatusList)
+			.where(
+				CredentialStatusList.issuer_did_id
+				== credential.issuer_did_id
+			)
+			.with_for_update()
+		)
+		status_list = self.session.scalar(statement)
+
+		if status_list is None:
+			status_list = CredentialStatusList(
+				issuer_did_id=credential.issuer_did_id,
+				bitstring=bytes(16 * 1024),
+				next_index=0,
+			)
+			self.session.add(status_list)
+			self.session.flush()
+
+		if credential.status_list_index is None:
+			index = status_list.next_index
+
+			if index >= len(status_list.bitstring) * 8:
+				raise CredentialInvalidDataError(
+					"Status list capacity exceeded."
+				)
+
+			credential.status_list_index = index
+			status_list.next_index = index + 1
+
+		index = credential.status_list_index
+
+		credential.payload = {
+			**credential.payload,
+			"credentialStatus": {
+				"id": f"{status_list_url}#{index}",
+				"type": "BitstringStatusListEntry",
+				"statusPurpose": "revocation",
+				"statusListIndex": str(index),
+				"statusListCredential": status_list_url,
+			},
+		}
+
+		status_payload = self._build_status_list_payload(
+			status_list,
+			issuer_did,
+			status_list_url,
+			valid_from=credential.payload["validFrom"],
+		)
+
+		credential_signing_input = build_signing_input(
 			credential.payload,
 			key_id,
 		)
 
+		status_list_signing_input = build_signing_input(
+			status_payload,
+			key_id,
+		)
+
+		try:
+			self.session.commit()
+		except Exception:
+			self.session.rollback()
+			raise
+
 		return {
-			"signing_input": signing_input,
+			"signing_input": credential_signing_input,
 			"key_id": key_id,
 			"issuer_address": issuer_address,
+			"status_list_signing_input": status_list_signing_input,
+			"status_list_url": status_list_url,
+			"status_list_index": index,
 		}
 
 	# ---------------------------------------------------------
@@ -283,11 +362,12 @@ class CredentialService:
 	# ---------------------------------------------------------
 
 	def complete_issuance(
-    self,
-    credential_id: UUID,
-    signature: str,
-    key_id: str,
-    organization_id: UUID | None = None,
+		self,
+		credential_id: UUID,
+		signature: str,
+		key_id: str,
+		status_list_signature: str,
+		organization_id: UUID | None = None,
 	) -> VerifiableCredential:
 
 		statement = (
@@ -295,7 +375,6 @@ class CredentialService:
 			.where(VerifiableCredential.id == credential_id)
 			.with_for_update()
 		)
-
 		credential = self.session.scalar(statement)
 
 		if credential is None:
@@ -312,9 +391,12 @@ class CredentialService:
 				"Only draft credentials can be issued."
 			)
 
-		expected_key_id, issuer_address = self._resolve_issuer_key(
-			credential
-		)
+		if credential.status_list_index is None:
+			raise CredentialInvalidDataError(
+				"Credential has no reserved status list index."
+			)
+
+		expected_key_id, issuer_address = self._resolve_issuer_key(credential)
 
 		if key_id != expected_key_id:
 			raise CredentialInvalidDataError(
@@ -322,47 +404,68 @@ class CredentialService:
 			)
 
 		try:
-			signing_input = build_signing_input(
+			credential_proof = self._make_issuer_proof(
 				credential.payload,
 				expected_key_id,
+				signature,
+				issuer_address,
 			)
 
-			message = encode_defunct(text=signing_input)
+			status_url = credential.payload["credentialStatus"][
+				"statusListCredential"
+			]
 
-			recovered_address = Account.recover_message(
-				message,
-				signature=signature,
-			)
-
-			if (
-				to_checksum_address(recovered_address)
-				!= to_checksum_address(issuer_address)
-			):
-				raise CredentialInvalidDataError(
-					"Signature does not belong to the issuer DID."
+			status_list = self.session.scalar(
+				select(CredentialStatusList)
+				.where(
+					CredentialStatusList.issuer_did_id
+					== credential.issuer_did_id
 				)
+				.with_for_update()
+			)
+
+			issuer_did = self.session.get(DID, credential.issuer_did_id)
+
+			if status_list is None or issuer_did is None:
+				raise CredentialInvalidDataError(
+					"Issuer status list not found."
+				)
+
+			status_payload = self._build_status_list_payload(
+				status_list,
+				issuer_did,
+				status_url,
+				valid_from=credential.payload["validFrom"],
+			)
+
+			status_proof = self._make_issuer_proof(
+				status_payload,
+				expected_key_id,
+				status_list_signature,
+				issuer_address,
+			)
 
 		except CredentialInvalidDataError:
 			raise
-
 		except Exception as exc:
 			raise CredentialInvalidDataError(
-				f"Credential signature verification failed: {exc}"
+				f"Issuance signature verification failed: {exc}"
 			) from exc
 
-		proof = {
-			"type": "Eip191PersonalSignature",
-			"verificationMethod": expected_key_id,
-			"signer": issuer_address,
-			"signature": signature,
-		}
-
-		credential.proof = proof
-
+		credential.proof = credential_proof
 		credential.signed_credential = json.dumps(
 			{
 				"credential": credential.payload,
-				"proof": proof,
+				"proof": credential_proof,
+			},
+			ensure_ascii=False,
+		)
+
+		status_list.proof = status_proof
+		status_list.signed_credential = json.dumps(
+			{
+				"credential": status_payload,
+				"proof": status_proof,
 			},
 			ensure_ascii=False,
 		)
@@ -372,15 +475,13 @@ class CredentialService:
 		try:
 			self.session.commit()
 			self.session.refresh(credential)
-
 		except Exception:
 			self.session.rollback()
 			raise
 
-		return credential
-	# ---------------------------------------------------------
-	# Issuer signing key information
-	# ---------------------------------------------------------
+		return credential	# ---------------------------------------------------------
+		# Issuer signing key information
+		# ---------------------------------------------------------
 
 	def get_issuer_signing_key(
 		self,
@@ -397,26 +498,139 @@ class CredentialService:
 
 		return self._resolve_issuer_key(credential)
 
-	def revoke(
+	def prepare_revocation(
 		self,
 		credential_id: UUID,
-		reason: str | None = None,
 		organization_id: UUID | None = None,
-	) -> VerifiableCredential:
+	) -> dict:
 		credential = self.get(credential_id, organization_id)
 
 		if credential is None:
 			raise CredentialInvalidDataError("Credential not found.")
 
-		if credential.status == CredentialStatus.REVOKED:
-			return credential
+		if credential.status != CredentialStatus.ISSUED:
+			raise CredentialInvalidDataError(
+				"Only issued credentials can be revoked."
+			)
 
+		if credential.status_list_index is None:
+			raise CredentialInvalidDataError("Credential has no status list index.")
+
+		status_url = credential.payload["credentialStatus"]["statusListCredential"]
+
+		status_list = self.session.scalar(
+			select(CredentialStatusList).where(
+				CredentialStatusList.issuer_did_id == credential.issuer_did_id
+			)
+		)
+		issuer_did = self.session.get(DID, credential.issuer_did_id)
+
+		if status_list is None or not status_list.signed_credential or issuer_did is None:
+			raise CredentialInvalidDataError("Issuer status list not found.")
+
+		previous = json.loads(status_list.signed_credential)
+		valid_from = previous["credential"]["validFrom"]
+
+		updated_bitstring = self._revoked_bitstring(
+			status_list.bitstring,
+			credential.status_list_index,
+		)
+
+		payload = self._build_status_list_payload(
+			status_list,
+			issuer_did,
+			status_url,
+			valid_from,
+			bitstring=updated_bitstring,
+		)
+
+		key_id, _ = self._resolve_issuer_key(credential)
+
+		return {
+			"signing_input": build_signing_input(payload, key_id),
+			"key_id": key_id,
+			"status_list_url": status_url,
+			"status_list_index": credential.status_list_index,
+		}
+
+
+	def complete_revocation(
+		self,
+		credential_id: UUID,
+		signature: str,
+		key_id: str,
+		organization_id: UUID | None = None,
+	) -> VerifiableCredential:
+		credential = self.session.scalar(
+			select(VerifiableCredential)
+			.where(VerifiableCredential.id == credential_id)
+			.with_for_update()
+		)
+
+		if credential is None or (
+			organization_id is not None
+			and credential.organization_id != organization_id
+		):
+			raise CredentialInvalidDataError("Credential not found.")
+
+		if credential.status != CredentialStatus.ISSUED:
+			raise CredentialInvalidDataError("Only issued credentials can be revoked.")
+
+		if credential.status_list_index is None:
+			raise CredentialInvalidDataError("Credential has no status list index.")
+
+		expected_key_id, issuer_address = self._resolve_issuer_key(credential)
+
+		if key_id != expected_key_id:
+			raise CredentialInvalidDataError("Signing key does not belong to this issuer.")
+
+		status_list = self.session.scalar(
+			select(CredentialStatusList)
+			.where(CredentialStatusList.issuer_did_id == credential.issuer_did_id)
+			.with_for_update()
+		)
+		issuer_did = self.session.get(DID, credential.issuer_did_id)
+
+		if status_list is None or not status_list.signed_credential or issuer_did is None:
+			raise CredentialInvalidDataError("Issuer status list not found.")
+
+		status_url = credential.payload["credentialStatus"]["statusListCredential"]
+		previous = json.loads(status_list.signed_credential)
+		valid_from = previous["credential"]["validFrom"]
+
+		updated_bitstring = self._revoked_bitstring(
+			status_list.bitstring,
+			credential.status_list_index,
+		)
+
+		status_payload = self._build_status_list_payload(
+			status_list,
+			issuer_did,
+			status_url,
+			valid_from,
+			bitstring=updated_bitstring,
+		)
+
+		try:
+			status_proof = self._make_issuer_proof(
+				status_payload,
+				expected_key_id,
+				signature,
+				issuer_address,
+			)
+		except Exception as exc:
+			raise CredentialInvalidDataError(
+				f"Revocation signature verification failed: {exc}"
+			) from exc
+
+		# Publication du nouveau Status List et révocation en une transaction.
+		status_list.bitstring = updated_bitstring
+		status_list.proof = status_proof
+		status_list.signed_credential = json.dumps(
+			{"credential": status_payload, "proof": status_proof},
+			ensure_ascii=False,
+		)
 		credential.status = CredentialStatus.REVOKED
-		payload = dict(credential.proof or {})
-		payload["revoked"] = True
-		if reason:
-			payload["reason"] = reason
-		credential.proof = payload
 
 		try:
 			self.session.commit()
@@ -426,3 +640,73 @@ class CredentialService:
 			raise
 
 		return credential
+
+	def _encode_status_bitstring(self, bitstring: bytes) -> str:
+		compressed = gzip.compress(bitstring, mtime=0)
+		encoded = base64.urlsafe_b64encode(compressed)
+		return "u" + encoded.rstrip(b"=").decode("ascii")
+
+	def _build_status_list_payload(
+		self,
+		status_list: CredentialStatusList,
+		issuer_did: DID,
+		status_list_url: str,
+		valid_from: str,
+		bitstring: bytes | None = None,
+	) -> dict:
+		return {
+			"@context": ["https://www.w3.org/ns/credentials/v2"],
+			"id": status_list_url,
+			"type": [
+				"VerifiableCredential",
+				"BitstringStatusListCredential",
+			],
+			"issuer": issuer_did.identifier,
+			"validFrom": valid_from,
+			"credentialSubject": {
+				"id": f"{status_list_url}#list",
+				"type": "BitstringStatusList",
+				"statusPurpose": "revocation",
+				"encodedList": self._encode_status_bitstring(
+					bitstring if bitstring is not None else status_list.bitstring
+				),
+			},
+		}
+
+	def _make_issuer_proof(
+		self,
+		payload: dict,
+		key_id: str,
+		signature: str,
+		issuer_address: str,
+	) -> dict:
+		signing_input = build_signing_input(payload, key_id)
+		recovered_address = Account.recover_message(
+			encode_defunct(text=signing_input),
+			signature=signature,
+		)
+
+		if (
+			to_checksum_address(recovered_address)
+			!= to_checksum_address(issuer_address)
+		):
+			raise CredentialInvalidDataError(
+				"Signature does not belong to the issuer DID."
+			)
+
+		return {
+			"type": "Eip191PersonalSignature",
+			"verificationMethod": key_id,
+			"signer": issuer_address,
+			"signature": signature,
+		}
+  
+	def _revoked_bitstring(self, bitstring: bytes, index: int) -> bytes:
+		data = bytearray(bitstring)
+		byte_index = index // 8
+
+		if byte_index >= len(data):
+			raise CredentialInvalidDataError("Status list index is out of range.")
+
+		data[byte_index] |= 1 << (7 - index % 8)
+		return bytes(data)
