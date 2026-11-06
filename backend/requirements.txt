@@ -40,7 +40,6 @@ httpx==0.28.1
 idna==3.20
 iniconfig==2.3.1
 -e git+https://github.com/Jovialngandu/keepyourid.git@c0152d8f924e1395513cb9e9bf524244c477b21a#egg=keepyourid_backend&subdirectory=backend
--e git+https://github.com/Jovialngandu/keepyourid.git@c0152d8f924e1395513cb9e9bf524244c477b21a#egg=keepyourid_verifier&subdirectory=verification-engine
 Mako==1.4.3
 MarkupSafe==3.0.4
 multidict==7.1.0
