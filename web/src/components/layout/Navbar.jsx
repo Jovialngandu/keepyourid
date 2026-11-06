@@ -33,6 +33,10 @@ function Navbar() {
       </nav>
 
       <div className="nav-actions">
+        <Link to="/verify" className="nav-button">
+          Vérifier
+        </Link>
+
         {isAuthenticated ? (
           <>
             <Link to="/wallet" className="nav-button">

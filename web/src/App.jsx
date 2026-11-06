@@ -12,6 +12,7 @@ import CredentialDetails from "./pages/CredentialDetails";
 import CredentialCreate from "./pages/CredentialCreate";
 import Credentials from "./pages/Credentials";
 import Wallet from "./pages/Wallet";
+import Verify from "./pages/Verify";
 
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -24,6 +25,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify" element={<Verify />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/organizations" element={<Organizations />} />
