@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 const CHECK_LABELS = {
   signature: "Signature",
   issuer_did: "DID de l'émetteur",
@@ -15,10 +17,20 @@ function checkStatus(value) {
     return { label: "Échoué", className: "check-fail" };
   }
 
+  if (value === "unknown") {
+    return { label: "Inconnu", className: "check-unknown" };
+  }
+
   return { label: "Non applicable", className: "check-na" };
 }
 
 export default function VerificationResult({ result, error, loading }) {
+  useEffect(() => {
+    const messages =
+      result && Array.isArray(result.errors) ? result.errors : [];
+    messages.forEach((message) => console.warn(message));
+  }, [result]);
+
   if (loading) {
     return (
       <section className="verification-result verification-result-loading">
@@ -46,7 +58,6 @@ export default function VerificationResult({ result, error, loading }) {
   }
 
   const checks = Object.entries(result.checks || {});
-  const errors = Array.isArray(result.errors) ? result.errors : [];
 
   return (
     <section className="verification-result">
@@ -93,16 +104,6 @@ export default function VerificationResult({ result, error, loading }) {
         </div>
       )}
 
-      {errors.length > 0 && (
-        <div className="verification-errors">
-          <h3>Erreurs</h3>
-          <ul>
-            {errors.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </section>
   );
 }
