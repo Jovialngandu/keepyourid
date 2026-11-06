@@ -8,10 +8,26 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from keepyourid.core.database import Base
 from keepyourid.modules.credentials.enums import CredentialStatus
-
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    func,
+    Text,
+    UniqueConstraint,
+)
 
 class VerifiableCredential(Base):
     __tablename__ = "verifiable_credentials"
+    __table_args__ = (
+    UniqueConstraint(
+        "issuer_did_id",
+        "status_list_index",
+        name="uq_credential_issuer_status_index",
+    ),
+)
 
     id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -100,4 +116,8 @@ class VerifiableCredential(Base):
     signed_credential: Mapped[str | None] = mapped_column(
     Text,
     nullable=True,
-)
+	)
+    status_list_index: Mapped[int | None] = mapped_column(
+    Integer,
+    nullable=True,
+	)
