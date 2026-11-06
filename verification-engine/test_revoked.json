@@ -1,0 +1,33 @@
+{
+  "credential": {
+    "id": "urn:uuid:8aff96f5-c8fc-48f6-9f3f-63ce32e960c6",
+    "type": [
+      "VerifiableCredential",
+      "IdentityCredential"
+    ],
+    "issuer": "did:ethr:sepolia:0xe574045db2e600e9a7836f5f3785ac43aa977bd3",
+    "@context": [
+      "https://www.w3.org/ns/credentials/v2"
+    ],
+    "validFrom": "2026-11-05T19:48:41.065695+00:00",
+    "validUntil": "2026-11-28T19:53:00+00:00",
+    "credentialStatus": {
+      "id": "http://localhost:8001/organizations/e01ca2c9-e953-414a-bf15-261dc284b107/credentials/status-lists/d04aae6e-7e16-4772-adbe-508361f48e1c#1",
+      "type": "BitstringStatusListEntry",
+      "statusPurpose": "revocation",
+      "statusListIndex": "1",
+      "statusListCredential": "http://localhost:8001/organizations/e01ca2c9-e953-414a-bf15-261dc284b107/credentials/status-lists/d04aae6e-7e16-4772-adbe-508361f48e1c"
+    },
+    "credentialSubject": {
+      "id": "did:ethr:sepolia:0x6bbf88c791e5b511046d5a7cd2190f1793b4fb69",
+      "given_name": "john3",
+      "family_name": "johnc3"
+    }
+  },
+  "proof": {
+    "type": "Eip191PersonalSignature",
+    "verificationMethod": "did:ethr:sepolia:0xe574045db2e600e9a7836f5f3785ac43aa977bd3#controller",
+    "signer": "0xe574045db2e600e9a7836f5f3785ac43aa977bd3",
+    "signature": "0xdc67c4582a962d5a5061d383657317519829406d276dd1b570d548596930fd2b55377e352c6020ddf95f0b458cf93b7bf238b0ff1818ab401894f07834b473611c"
+  }
+}
