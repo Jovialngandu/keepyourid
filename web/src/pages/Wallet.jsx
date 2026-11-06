@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
+import CredentialQrModal from "../components/verification/CredentialQrModal";
 
 import {
   connectWallet,
@@ -64,6 +65,7 @@ export default function Wallet() {
 
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [qrCredential, setQrCredential] = useState(null);
 
   const [verified, setVerified] = useState(false);
 
@@ -515,9 +517,21 @@ if (activeAccounts[0]?.toLowerCase() !== address.toLowerCase()) {
                         </small>
                       </div>
 
-                      <span>
-                        {credential.status || "Émise"}
-                      </span>
+                      <div className="wallet-credential-actions">
+                        <span>
+                          {credential.status || "Émise"}
+                        </span>
+
+                        {credential.signed_credential ? (
+                          <button
+                            type="button"
+                            className="wallet-qr-button"
+                            onClick={() => setQrCredential(credential)}
+                          >
+                            Afficher mon QR code
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -559,6 +573,13 @@ if (activeAccounts[0]?.toLowerCase() !== address.toLowerCase()) {
                 titulaire.
               </p>
             </section>
+
+            {qrCredential && (
+              <CredentialQrModal
+                credential={qrCredential}
+                onClose={() => setQrCredential(null)}
+              />
+            )}
           </>
         )}
       </main>
