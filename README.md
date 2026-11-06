@@ -2,11 +2,9 @@
 
 **Decentralized Digital Identity & Verifiable Credentials Platform**
 
-KeepYourID est un projet de plateforme d'identité numérique décentralisée fondée sur les principes du **Self-Sovereign Identity (SSI)**. Son objectif est de permettre aux organisations d'émettre des attestations numériques vérifiables cryptographiquement, aux individus de les conserver dans leur propre portefeuille numérique et aux services tiers de vérifier ces attestations de manière indépendante.
+KeepYourID est une plateforme d’identité numérique décentralisée fondée sur les principes du **Self-Sovereign Identity (SSI)**. Elle permet aux organisations d’émettre des attestations numériques signées cryptographiquement, aux individus de les conserver dans un wallet personnel et aux services tiers de vérifier ces attestations de manière indépendante.
 
-Le projet vise à proposer une infrastructure permettant de réduire la dépendance à un intermédiaire central pour la vérification des identités et des justificatifs numériques.
-
-> **Statut du projet :** Architecture initiale et mise en place du socle technique.
+> **Statut actuel :** MVP technique en cours. Les principaux composants backend, moteur de vérification et interface web de vérification sont implémentés. Le wallet mobile Expo reste à développer.
 
 ---
 
@@ -19,28 +17,26 @@ Le projet vise à proposer une infrastructure permettant de réduire la dépenda
 
 ## 2. Objectifs du projet
 
-KeepYourID poursuit les objectifs suivants :
+- Permettre aux organisations de disposer d’une identité décentralisée (DID).
+- Permettre l’émission d’attestations numériques signées cryptographiquement.
+- Donner aux individus le contrôle de leurs attestations grâce à un wallet personnel.
+- Permettre la présentation sélective d’informations afin de limiter la divulgation de données personnelles.
+- Permettre à des services tiers de vérifier indépendamment l’authenticité et le statut des attestations.
+- Mettre en place un mécanisme de révocation des credentials.
 
-- Permettre aux organisations de disposer d'une identité décentralisée (DID).
-- Permettre l'émission d'attestations numériques signées cryptographiquement.
-- Donner aux individus le contrôle de leurs attestations numériques grâce à un portefeuille personnel.
-- Permettre la présentation sélective d'informations afin de limiter la divulgation de données personnelles.
-- Permettre à des services tiers de vérifier indépendamment l'authenticité et le statut des attestations.
-- Mettre en place un mécanisme de gestion de la révocation des credentials.
-
-L'ambition est de construire un système dans lequel la confiance repose sur des mécanismes cryptographiques vérifiables, des identités décentralisées et des politiques de reconnaissance des émetteurs.
+L’ambition est de construire un système dans lequel la confiance repose sur des mécanismes cryptographiques vérifiables, des identités décentralisées et des politiques de reconnaissance des émetteurs.
 
 ---
 
 ## 3. Architecture générale
 
-KeepYourID adopte une architecture **modulaire**, organisée autour d'un backend métier et de composants indépendants.
+KeepYourID adopte une architecture **modulaire**, organisée autour d’un backend métier FastAPI, d’un moteur de vérification indépendant et d’une application web React.
 
-Le backend principal est conçu comme un **Modular Monolith**. Cette approche permet de conserver une base applicative cohérente tout en séparant les responsabilités métier.
+Le backend principal est un **Modular Monolith** : les responsabilités métier sont séparées par modules, mais partagent la même base applicative.
 
-Le moteur de vérification constitue une frontière architecturale indépendante : il ne doit pas dépendre des services métier du backend KeepYourID.
+Le moteur de vérification est une frontière architecturale indépendante : il ne dépend ni de FastAPI, ni des modèles SQLAlchemy, ni des services métier du backend.
 
-### 3.1 Vue d'ensemble
+### 3.1 Vue d’ensemble
 
 ```text
                  KEEPYOURID ECOSYSTEM
@@ -72,18 +68,19 @@ Le moteur de vérification constitue une frontière architecturale indépendante
           Database    Cryptography  Blockchain
 ```
 
-Le moteur de vérification est conçu pour fonctionner indépendamment du backend d'émission :
+Le moteur de vérification fonctionne indépendamment du backend d’émission :
 
 ```text
          External Verifier
                 |
                 v
        Verification Engine
+       keepyourid-verifier
                 |
        +--------+---------+
        |        |         |
      DID     Signature  Credential
-   Resolver  Validation   Status
+   Trust    Validation   Status
        |        |         |
        +--------+---------+
                 |
@@ -92,59 +89,63 @@ Le moteur de vérification est conçu pour fonctionner indépendamment du backen
 
 ### 3.2 Composants principaux
 
-#### Backend métier
+#### Backend métier — `backend/`
 
-Le backend centralise les opérations métier de la plateforme.
+Technologie : **Python 3.10+ / FastAPI / SQLAlchemy / PostgreSQL**.
 
-Technologie retenue : **Python + FastAPI**.
-
-Il regroupe les responsabilités suivantes :
+Modules implémentés :
 
 | Module | Responsabilité |
 |---|---|
-| Organizations | Inscription et gestion des organisations |
-| Onboarding | Validation des organisations avant autorisation d'émission |
-| Identity | Gestion des identités décentralisées |
-| Members | Gestion des utilisateurs, agents et permissions |
-| Credentials | Gestion et émission des attestations |
-| Presentations | Gestion des demandes et présentations |
-| Status | Révocation et suspension des attestations |
-| Trust | Politiques de confiance et reconnaissance des émetteurs |
+| `users` / `auth` | Inscription, login, logout, session utilisateur |
+| `organizations` | Organisations, memberships et permissions |
+| `dids` | DID organisations `did:ethr:sepolia`, challenges et vérification EIP-191 |
+| `holders` | DID titulaires, challenges et credentials du wallet |
+| `credentials` | Draft, émission, signature, status list Bitstring, révocation |
+| `credential_verification` | API publique `POST /api/v1/verifications` adossée au moteur externe |
+| `blockchain` | Adaptateur Ethereum, transactions et Issuer Registry |
+| `health` | Healthcheck API |
 
-#### Verification Engine
+Le backend expose une API sous `/api/v1` pour la plupart des routers. Le router `credentials` possède son propre prefix `/organizations/{organization_id}/credentials`; son inclusion exacte doit être vérifiée pour préserver la compatibilité des URLs de Status Lists déjà émises.
 
-Le moteur de vérification est un composant indépendant chargé de vérifier les credentials et les présentations.
+#### Verification Engine — `verification-engine/`
 
-Ses responsabilités comprennent :
+Package Python indépendant : **`keepyourid-verifier`**.
 
-- La résolution des DID.
-- La vérification des signatures cryptographiques.
-- Le contrôle de la validité des credentials.
-- La vérification des statuts de révocation.
-- L'application des politiques de confiance.
-- La production d'un résultat de vérification structuré.
+Responsabilités :
 
-Il ne doit pas dépendre des modèles de données internes ni des services métier du backend principal.
+- Vérification de la signature EIP-191 du credential.
+- Cohérence entre le signataire récupéré et le DID émetteur.
+- Contrôle de confiance de l’émetteur via l’Issuer Registry blockchain.
+- Contrôle d’expiration `validFrom` / `validUntil`.
+- Contrôle de révocation via Status List Bitstring.
 
-#### Wallet citoyen
+Entrée acceptée : enveloppe JSON `{"credential": {...}, "proof": {...}}` ou string JSON équivalente.
 
-Le wallet est destiné aux individus.
+Sortie : `VerificationResult` avec `valid`, `credential_id`, `issuer`, `checks`, `errors`.
 
-Il permettra notamment de conserver les attestations numériques, de consulter leur contenu et de préparer des présentations à destination des services demandeurs.
+Configuration lue par le moteur : `ISSUER_REGISTRY_RPC_URL`, `ISSUER_REGISTRY_ADDRESS`.
 
-Technologie envisagée : **Expo / React Native**.
+#### Application web — `web/`
 
-#### Portail organisation
+Technologie : **React 19 / Vite / React Router / Vitest / oxlint**.
 
-Le portail permettra aux organisations de rejoindre la plateforme, de configurer leur identité décentralisée, de gérer leurs agents et d'émettre des attestations.
+Fonctionnalités implémentées :
 
-L'inscription sera libre, mais une validation sera obligatoire avant toute émission.
+- Authentification utilisateur.
+- Portail organisations et memberships.
+- Setup DID organisation.
+- Wallet utilisateur avec connexion MetaMask sur Sepolia.
+- Vérification DID titulaire par challenge signé.
+- Liste des credentials du titulaire.
+- QR code de présentation d’une credential.
+- Copie du JSON `signed_credential`.
+- Page publique `/verify` avec scan QR caméra et import JSON.
+- Affichage détaillé des checks de vérification.
 
-#### Portail vérificateur
+#### Wallet mobile — `wallet/`
 
-Le portail fournira une interface permettant de vérifier des présentations et des attestations.
-
-La vérification sera également accessible par API afin de permettre l'intégration de services externes.
+Répertoire réservé pour l’application mobile. Technologie envisagée : **Expo / React Native**. Le wallet actuel est la page web `/wallet`.
 
 ---
 
@@ -152,40 +153,24 @@ La vérification sera également accessible par API afin de permettre l'intégra
 
 ### 4.1 Decentralized Identifiers (DID)
 
-Les organisations disposent d'identifiants décentralisés permettant de retrouver les informations publiques nécessaires à la vérification de leur identité cryptographique.
-
-Le DID method envisagé pour le premier prototype est `did:ethr`.
+Les organisations et les titulaires utilisent des DID `did:ethr:sepolia:<address>`. La preuve de contrôle se fait par challenge signé en EIP-191 et vérifié côté backend.
 
 ### 4.2 Verifiable Credentials (VC)
 
-Les organisations émettent des attestations numériques signées cryptographiquement.
+Les credentials sont des attestations numériques au format inspiré W3C VC v2, signées par l’émetteur. Le backend produit une enveloppe `{"credential": ..., "proof": ...}` stockée dans `signed_credential`.
 
-Un credential contient notamment :
+### 4.3 Révocation
 
-- L'identité de l'émetteur.
-- Les informations attestées.
-- L'identité du titulaire, selon le modèle retenu.
-- Les informations de validité.
-- Les informations relatives à son statut.
-
-### 4.3 Verifiable Presentations (VP)
-
-Les individus peuvent présenter leurs credentials à des services tiers.
-
-La présentation doit permettre de limiter les informations divulguées en fonction de la demande et du format cryptographique choisi.
+Le projet utilise le standard **Bitstring Status List**. Les credentials émis référencent une Status List signée publiée par le backend. Le moteur de vérification récupère cette Status List pour contrôler le bit de révocation.
 
 ### 4.4 Gestion des clés
 
-Le système distingue deux catégories principales de clés :
+Deux catégories de clés sont distinguées :
 
-- **Clés de l'émetteur :** utilisées pour signer les credentials.
-- **Clés du titulaire :** utilisées par le wallet pour démontrer le contrôle de son identité ou participer aux mécanismes de présentation.
+- **Clés émetteur** : signature des credentials et Status Lists.
+- **Clés titulaire** : contrôle du DID holder via MetaMask / EIP-191.
 
-Les clés privées ne doivent jamais être publiées sur la blockchain.
-
-### 4.5 Révocation
-
-Le projet prévoit l'utilisation du standard W3C Bitstring Status List pour permettre aux vérificateurs de contrôler le statut des credentials.
+Les clés privées ne doivent jamais être publiées.
 
 ---
 
@@ -193,19 +178,19 @@ Le projet prévoit l'utilisation du standard W3C Bitstring Status List pour perm
 
 | Domaine | Technologie |
 |---|---|
-| Backend | Python |
-| Framework API | FastAPI |
-| Application mobile | Expo / React Native |
-| Smart contracts | Solidity |
-| Blockchain envisagée | Ethereum Sepolia |
-| DID method envisagé | did:ethr |
-| Base de données envisagée | PostgreSQL |
-| Environnement Python | venv |
-| Gestion des dépendances | pip |
-| Tests backend | pytest |
-| Documentation API | OpenAPI / Swagger |
-
-Les bibliothèques spécialisées pour DID, VC, signatures et divulgation sélective feront l'objet d'une sélection technique en fonction de leur compatibilité avec les standards retenus.
+| Backend | Python 3.10+, FastAPI, SQLAlchemy, Alembic |
+| Base de données | PostgreSQL via `psycopg` |
+| Blockchain | Ethereum Sepolia / Anvil, `web3`, `eth-account` |
+| DID method | `did:ethr` |
+| Signature | EIP-191 personal signature |
+| Credentials | W3C VC v2 inspiré, enveloppe `credential` + `proof` |
+| Révocation | Bitstring Status List |
+| Moteur de vérification | Package Python `keepyourid-verifier` |
+| Frontend | React 19, Vite, React Router |
+| Tests frontend | Vitest, Testing Library, jsdom |
+| Lint frontend | oxlint |
+| Mobile prévu | Expo / React Native |
+| Conteneurs | Docker Compose pour PostgreSQL |
 
 ---
 
@@ -213,158 +198,249 @@ Les bibliothèques spécialisées pour DID, VC, signatures et divulgation sélec
 
 ### Prérequis
 
-- Python 3.11 ou supérieur.
-- pip.
+- Python 3.10+.
+- Node.js 20+.
 - Git.
+- Docker Compose pour PostgreSQL.
+- MetaMask pour les tests wallet sur Sepolia.
 
-### Cloner le dépôt
+### Base de données
 
 ```bash
-git clone <repository-url>
-cd keepyourid
+docker compose up -d postgres
 ```
 
-### Initialiser l'environnement backend
+PostgreSQL est exposé sur le port `5434`.
+
+### Backend
 
 ```bash
 cd backend
-
 python3 -m venv .venv
 source .venv/bin/activate
-
 python -m pip install --upgrade pip
 pip install -e ".[dev]"
-```
-
-### Configurer les variables d'environnement
-
-```bash
 cp .env.example .env
 ```
 
-### Lancer l'application
+La dépendance `keepyourid-verifier` est déclarée dans `backend/pyproject.toml` via `file:../verification-engine` pour le développement local. `backend/requirements.txt` contient aussi une entrée VCS pinnée pour un déploiement reproductible.
+
+Lancer l’API :
 
 ```bash
-uvicorn keepyourid.main:app --reload
+cd backend
+./.venv/bin/uvicorn keepyourid.main:app --reload
 ```
 
-L'API sera accessible à l'adresse :
+API et documentation :
 
 ```text
-http://127.0.0.1:8000
-```
-
-Documentation interactive :
-
-```text
+http://127.0.0.1:8000/api/v1/health
 http://127.0.0.1:8000/docs
 ```
 
-### Exécuter les tests
+Tests backend ciblés :
 
 ```bash
-pytest -v
+cd backend
+./.venv/bin/pytest -q tests/modules/credential_verification
+./.venv/bin/ruff check src/keepyourid/modules/credential_verification tests/modules/credential_verification
 ```
+
+### Moteur de vérification
+
+```bash
+cd verification-engine
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -q
+```
+
+### Frontend
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Si `npm install` échoue sur la résolution des peer dependencies, utiliser :
+
+```bash
+npm install --legacy-peer-deps
+```
+
+Lancer les tests et le build :
+
+```bash
+cd web
+npm test
+npm run lint
+npm run build
+```
+
+Frontend par défaut : `http://localhost:5173`.
 
 ---
 
-## 7. Architecture du dépôt
+## 7. API principale
+
+Préfixe global prévu : `/api/v1`.
+
+| Méthode | Route | Rôle |
+|---|---|---|
+| `GET` | `/api/v1/health` | Healthcheck |
+| `POST` | `/api/v1/auth/register` | Inscription utilisateur |
+| `POST` | `/api/v1/auth/login` | Login |
+| `POST` | `/api/v1/auth/logout` | Logout |
+| `GET` | `/api/v1/auth/me` | Utilisateur courant |
+| `GET/POST` | `/api/v1/organizations` | Organisations |
+| `GET/PATCH/DELETE` | `/api/v1/organizations/{id}/members...` | Memberships |
+| `GET/POST` | `/api/v1/dids/...` | DID organisations, challenges, vérification |
+| `GET/POST` | `/api/v1/holders/me/...` | DID titulaires, challenges, credentials |
+| `POST` | `/api/v1/verifications` | Vérification d’une credential signée |
+| `GET` | `/organizations/{organization_id}/credentials...` | Cycle de vie credentials et Status Lists |
+
+### `POST /api/v1/verifications`
+
+Requête :
+
+```json
+{
+  "signed_credential": {
+    "credential": {},
+    "proof": {}
+  }
+}
+```
+
+`signed_credential` peut aussi être une string JSON.
+
+Réponse `200` :
+
+```json
+{
+  "valid": false,
+  "credential_id": "urn:uuid:...",
+  "issuer": "did:ethr:sepolia:0x...",
+  "checks": {
+    "signature": true,
+    "issuer_did": true,
+    "issuer_trust": false,
+    "revocation": true,
+    "expiration": true
+  },
+  "errors": ["Issuer is not registered."]
+}
+```
+
+Codes : `200` vérification exécutée, `422` entrée invalide, `429` rate limit, `500` erreur technique.
+
+---
+
+## 8. Flux fonctionnel principal
+
+1. Une organisation s’inscrit et est validée.
+2. L’organisation crée et vérifie son DID `did:ethr:sepolia`.
+3. L’organisation crée un credential, prépare l’émission, signe le credential et la Status List, puis termine l’émission.
+4. Le credential émis est stocké avec `signed_credential = {"credential": ..., "proof": ...}`.
+5. Le titulaire se connecte via MetaMask Sepolia, vérifie son Holder DID, puis consulte ses credentials dans `/wallet`.
+6. Le titulaire affiche le QR code ou copie le JSON `signed_credential`.
+7. Le vérificateur ouvre `/verify`, scanne le QR ou importe le JSON, puis appelle `POST /api/v1/verifications`.
+8. L’interface affiche le verdict global, le credential ID, l’émetteur, chaque check et les erreurs.
+
+---
+
+## 9. Sécurité implémentée
+
+- Le moteur de vérification reste indépendant du backend.
+- Les destinations `statusListCredential` sont filtrées par allowlist : `CREDENTIAL_STATUS_LIST_ALLOWED_HOSTS`.
+- La taille du payload `signed_credential` est limitée côté API.
+- Un rate limit en mémoire est appliqué sur `/api/v1/verifications`.
+- Les erreurs 500 ne exposent pas de stack trace.
+- Les clés privées ne sont pas exposées côté frontend.
+
+---
+
+## 10. État actuel du projet
+
+| Élément | État |
+|---|---|
+| Vision et objectifs | Définis |
+| Architecture modulaire | Implémentée |
+| Backend FastAPI | Fonctionnel sur les modules principaux |
+| Auth utilisateurs | Implémentée |
+| Organisations et memberships | Implémentés |
+| DID organisations | Implémentés avec challenge EIP-191 |
+| Holder wallet web | Implémenté avec MetaMask Sepolia |
+| Émission credentials | Implémentée côté backend |
+| Status Lists / révocation | Implémentées côté backend |
+| Moteur de vérification | Implémenté comme package indépendant |
+| API de vérification | `POST /api/v1/verifications` implémentée |
+| Interface web vérification | `/verify` implémentée : QR caméra + import JSON |
+| QR wallet + copie JSON | Implémentés |
+| Tests frontend | 30 tests passent |
+| Tests backend vérification | 16 tests passent |
+| Mobile Expo | À développer |
+| Présentation sélective | À développer |
+| Déploiement production | À définir |
+
+---
+
+## 11. Points de vigilance
+
+- Le router `credentials` doit être aligné avec le préfixe `/api/v1` sans casser les URLs de Status Lists déjà émises.
+- Le moteur lit `ISSUER_REGISTRY_RPC_URL` / `ISSUER_REGISTRY_ADDRESS`; le backend utilise aussi `BLOCKCHAIN_RPC_URL` / `ISSUER_REGISTRY_ADDRESS`. L’alignement de configuration doit être vérifié pour `issuer_trust`.
+- Le check `issuer_trust` du moteur utilise actuellement une chaîne cible à confirmer pour Sepolia/Anvil.
+- La caméra du scanner QR nécessite un contexte sécurisé : `localhost` ou HTTPS.
+- `CREDENTIAL_STATUS_LIST_ALLOWED_HOSTS` doit contenir l’hôte réel des Status Lists, sinon le check `revocation` est refusé côté API.
+- La suite backend complète contient encore des échecs de tests liés à l’émission existante ; ils ne concernent pas le module `credential_verification`.
+
+---
+
+## 12. Dépôt
 
 ```text
 keepyourid/
 │
 ├── backend/
-│   ├── src/
-│   │   └── keepyourid/
-│   │       ├── main.py
-│   │       ├── config.py
-│   │       ├── modules/
-│   │       └── infrastructure/
+│   ├── src/keepyourid/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── modules/
+│   │   │   ├── users/
+│   │   │   ├── organizations/
+│   │   │   ├── dids/
+│   │   │   ├── holders/
+│   │   │   ├── credentials/
+│   │   │   ├── credential_verification/
+│   │   │   └── health/
+│   │   ├── verification/
+│   │   └── blockchain/
 │   ├── tests/
-│   └── pyproject.toml
+│   ├── pyproject.toml
+│   ├── requirements.txt
+│   └── .env.example
 │
 ├── verification-engine/
-│
-├── wallet/
+│   ├── src/keepyourid_verifier/
+│   │   ├── engine.py
+│   │   └── checks/
+│   └── tests/
 │
 ├── web/
+│   ├── src/pages/
+│   ├── src/components/
+│   ├── src/services/
+│   └── package.json
 │
-├── contracts/
-│
+├── wallet/                 # réservé Expo / React Native
+├── docker/
+├── docker-compose.yml
 ├── docs/
-│   └── architecture.md
-│
-├── .gitignore
 └── README.md
 ```
-
-Les répertoires représentent les frontières des composants envisagés. Leur contenu sera développé progressivement selon l'avancement du projet.
-
----
-
-## 8. État actuel du projet
-
-Le projet se trouve dans sa phase initiale.
-
-| Élément | État |
-|---|---|
-| Vision et objectifs | Définis |
-| Architecture générale | Définie initialement |
-| Choix FastAPI | Retenu |
-| Structure du dépôt | En initialisation |
-| Backend | Socle initial |
-| Module DID | À développer |
-| Émission de credentials | À développer |
-| Wallet | À développer |
-| Moteur de vérification | À développer |
-| Smart contracts | À développer |
-| Révocation | À développer |
-
-Les éléments indiqués comme « à développer » ne sont pas présentés comme des fonctionnalités déjà opérationnelles.
-
----
-
-## 9. Adresses des contrats
-
-Aucun contrat intelligent n'est actuellement déployé.
-
-| Réseau | Adresse |
-|---|---|
-| Ethereum Sepolia | Non disponible — aucun déploiement effectué |
-
----
-
-## 10. Déploiement
-
-Aucun environnement de production ou de démonstration n'est actuellement configuré.
-
-Les modalités de déploiement seront documentées après la mise en place et la validation des premiers composants.
-
----
-
-## 11. Tests
-
-Les tests automatisés seront développés progressivement.
-
-Les principaux scénarios de validation prévus sont :
-
-- Inscription et validation d'une organisation.
-- Création et résolution d'un DID.
-- Émission d'un credential signé.
-- Vérification indépendante de la signature.
-- Présentation d'un credential par son titulaire.
-- Détection d'un credential révoqué.
-- Rejet d'un credential invalide.
-
-Le scénario central du MVP sera une chaîne complète allant de l'émission à la vérification indépendante.
-
----
-
-## 12. Captures d'écran et démonstration
-
-Les captures d'écran seront ajoutées au fur et à mesure de l'implémentation des interfaces.
-
-Aucune capture ni aucun compte de démonstration n'est actuellement disponible.
 
 ---
 
