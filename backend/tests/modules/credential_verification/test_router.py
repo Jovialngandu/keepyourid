@@ -141,6 +141,29 @@ def test_verify_endpoint_accepts_json_string(client):
     assert response.json()["valid"] is True
 
 
+def test_verify_endpoint_returns_unknown_issuer_trust(client):
+    result = make_result(valid=True)
+    result.checks["issuer_trust"] = "unknown"
+    result.errors = ["Issuer registry configuration is missing."]
+
+    service = CredentialVerificationService(verifier=FakeVerifier(result))
+    previous = override_service(service)
+
+    try:
+        response = client.post(
+            "/api/v1/verifications",
+            json={"signed_credential": make_envelope()},
+        )
+    finally:
+        restore_overrides(previous)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is True
+    assert body["checks"]["issuer_trust"] == "unknown"
+    assert body["errors"] == ["Issuer registry configuration is missing."]
+
+
 def test_verify_endpoint_rejects_invalid_schema(client):
     response = client.post("/api/v1/verifications", json={})
     assert response.status_code == 422

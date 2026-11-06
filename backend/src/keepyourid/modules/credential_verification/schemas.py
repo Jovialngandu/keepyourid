@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -34,5 +34,5 @@ class CredentialVerificationResponse(BaseModel):
     valid: bool
     credential_id: str | None
     issuer: str | None
-    checks: dict[str, bool | None]
+    checks: dict[str, bool | Literal["unknown"] | None]
     errors: list[str] = Field(default_factory=list)

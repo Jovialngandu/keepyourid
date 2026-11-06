@@ -154,6 +154,32 @@ def test_invalid_signature_result_is_returned():
     assert result["checks"]["signature"] is False
 
 
+def test_unknown_issuer_trust_is_returned_without_blocking():
+    verifier = FakeVerifier(
+        result=make_result(
+            valid=True,
+            checks={
+                "signature": True,
+                "issuer_did": True,
+                "issuer_trust": "unknown",
+                "revocation": True,
+                "expiration": True,
+            },
+            errors=["Issuer registry configuration is missing."],
+        )
+    )
+    service = CredentialVerificationService(
+        verifier=verifier,
+        allowed_status_list_hosts="issuer.example",
+    )
+
+    result = service.verify(make_envelope())
+
+    assert result["valid"] is True
+    assert result["checks"]["issuer_trust"] == "unknown"
+    assert result["errors"] == ["Issuer registry configuration is missing."]
+
+
 def test_malformed_envelope_is_rejected():
     verifier = FakeVerifier(result=make_result())
     service = CredentialVerificationService(verifier=verifier)
