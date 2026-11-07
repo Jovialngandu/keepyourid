@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from keepyourid.config import get_settings
-from keepyourid.core.auth import SESSION_COOKIE_NAME, get_current_user
+from keepyourid.core.auth import SESSION_COOKIE_NAME, get_current_user, get_token_from_request
 from keepyourid.core.dependencies import get_db
 from keepyourid.modules.users.schemas import UserLoginRequest, UserRegisterRequest, UserResponse, UserSessionResponse
 from keepyourid.modules.users.service import InvalidCredentialsError, UserAlreadyExistsError, UserService
@@ -53,7 +53,7 @@ def login_user(
         max_age=7 * 24 * 60 * 60,
         **_session_cookie_attrs(),
     )
-    return UserSessionResponse(user=user)
+    return UserSessionResponse(user=user, access_token=token)
 
 
 @router.post("/logout")
@@ -62,7 +62,7 @@ def logout_user(
     response: Response,
     db: Session = Depends(get_db),
 ):
-    token = request.cookies.get(SESSION_COOKIE_NAME)
+    token = get_token_from_request(request)
     UserService(db).logout(token)
     attrs = _session_cookie_attrs()
     response.delete_cookie(

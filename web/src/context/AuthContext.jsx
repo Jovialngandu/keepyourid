@@ -13,6 +13,7 @@ import {
   logoutUser,
   registerUser,
 } from "../services/auth";
+import { setAccessToken } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -39,6 +40,7 @@ export function AuthProvider({ children }) {
 
   async function login(credentials) {
     const result = await loginUser(credentials);
+    setAccessToken(result.access_token);
     setUser(result.user);
     return result.user;
   }
@@ -51,6 +53,7 @@ export function AuthProvider({ children }) {
     try {
       await logoutUser();
     } finally {
+      setAccessToken(null);
       setUser(null);
     }
   }

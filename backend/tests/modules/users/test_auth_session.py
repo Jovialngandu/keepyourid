@@ -39,7 +39,11 @@ def login(client, email="user@example.com", password="password123"):
     )
 
 
-def test_login_sets_session_cookie_attributes(client):
+def test_login_sets_session_cookie_attributes(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "session_cookie_samesite", "lax")
+    monkeypatch.setattr(settings, "session_cookie_secure", False)
+
     register_user(client)
     response = login(client)
 
@@ -51,7 +55,7 @@ def test_login_sets_session_cookie_attributes(client):
     assert "Path=/" in set_cookie
     assert "Max-Age=604800" in set_cookie
     assert "SameSite=lax" in set_cookie
-    assert "secure" not in set_cookie.lower().replace("samesite", "")
+    assert "Secure" not in set_cookie
 
 
 def test_login_cookie_attributes_cross_site(client, monkeypatch):
@@ -73,7 +77,14 @@ def test_me_without_cookie_returns_401(client):
     assert response.status_code == 401
 
 
-def test_me_with_valid_session_cookie_returns_user(client):
+@pytest.fixture
+def local_cookie_settings(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "session_cookie_samesite", "lax")
+    monkeypatch.setattr(settings, "session_cookie_secure", False)
+
+
+def test_me_with_valid_session_cookie_returns_user(client, local_cookie_settings):
     register_user(client, email="me@example.com")
     login_response = login(client, email="me@example.com")
     assert login_response.status_code == 200
@@ -85,7 +96,71 @@ def test_me_with_valid_session_cookie_returns_user(client):
     assert response.json()["email"] == "me@example.com"
 
 
-def test_logout_revokes_session_and_clears_cookie(client):
+def test_login_returns_access_token(client):
+    register_user(client, email="token@example.com")
+    response = login(client, email="token@example.com")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["access_token"]
+    assert body["token_type"] == "bearer"
+    assert body["user"]["email"] == "token@example.com"
+
+
+def test_me_with_bearer_token_returns_user(client):
+    register_user(client, email="bearer@example.com")
+    login_response = login(client, email="bearer@example.com")
+    token = login_response.json()["access_token"]
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["email"] == "bearer@example.com"
+
+
+def test_me_with_invalid_token_returns_401(client):
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": "Bearer invalid-token-value"},
+    )
+    assert response.status_code == 401
+
+
+def test_revoked_token_returns_401(client):
+    register_user(client, email="revoked@example.com")
+    login_response = login(client, email="revoked@example.com")
+    token = login_response.json()["access_token"]
+
+    client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 401
+
+
+def test_logout_with_bearer_token_revokes_session(client):
+    register_user(client, email="bearer-logout@example.com")
+    login_response = login(client, email="bearer-logout@example.com")
+    token = login_response.json()["access_token"]
+
+    headers = {"Authorization": f"Bearer {token}"}
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
+
+    logout_response = client.post("/api/v1/auth/logout", headers=headers)
+    assert logout_response.status_code == 200
+
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
+
+
+def test_logout_revokes_session_and_clears_cookie(client, local_cookie_settings):
     register_user(client, email="logout@example.com")
     login(client, email="logout@example.com")
 

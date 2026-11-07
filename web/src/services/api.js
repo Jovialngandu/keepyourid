@@ -3,12 +3,29 @@ const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1"
 ).replace(/\/$/, "");
 
+const TOKEN_KEY = "keepyourid_access_token";
+
+export function getAccessToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAccessToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
 export async function apiRequest(path, options = {}) {
+  const token = getAccessToken();
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
       Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.body instanceof FormData
         ? {}
         : { "Content-Type": "application/json" }),
