@@ -96,6 +96,30 @@ def test_me_with_valid_session_cookie_returns_user(client, local_cookie_settings
     assert response.json()["email"] == "me@example.com"
 
 
+def test_register_returns_access_token_and_authenticates(client):
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "full_name": "Fresh User",
+            "email": "fresh@example.com",
+            "password": "password123",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["access_token"]
+    assert body["token_type"] == "bearer"
+    assert body["user"]["email"] == "fresh@example.com"
+
+    me = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {body['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["email"] == "fresh@example.com"
+
+
 def test_login_returns_access_token(client):
     register_user(client, email="token@example.com")
     response = login(client, email="token@example.com")

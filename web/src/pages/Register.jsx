@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function Register() {
-  const { register, login, user, loading } = useAuth();
+  const { register, user, loading } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState("");
@@ -22,14 +22,12 @@ function Register() {
     setSubmitting(true);
 
     try {
+      // Registration now returns a session (access_token) directly.
       await register({
         full_name: fullName,
         email,
         password,
       });
-
-      // Registration creates the account; login establishes its session.
-      await login({ email, password });
 
       navigate("/organizations", { replace: true });
     } catch (err) {

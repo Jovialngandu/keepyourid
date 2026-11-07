@@ -26,13 +26,28 @@ def _session_cookie_attrs() -> dict:
     }
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register_user(data: UserRegisterRequest, db: Session = Depends(get_db)):
+def _issue_session(db: Session, user, response: Response) -> UserSessionResponse:
+    _, token = UserService(db).create_session(user)
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        max_age=7 * 24 * 60 * 60,
+        **_session_cookie_attrs(),
+    )
+    return UserSessionResponse(user=user, access_token=token)
+
+
+@router.post("/register", response_model=UserSessionResponse, status_code=status.HTTP_201_CREATED)
+def register_user(
+    data: UserRegisterRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     try:
         user = UserService(db).register(data)
-        return user
     except UserAlreadyExistsError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return _issue_session(db, user, response)
 
 
 @router.post("/login", response_model=UserSessionResponse)
@@ -46,14 +61,7 @@ def login_user(
     except InvalidCredentialsError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
-    _, token = UserService(db).create_session(user)
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=token,
-        max_age=7 * 24 * 60 * 60,
-        **_session_cookie_attrs(),
-    )
-    return UserSessionResponse(user=user, access_token=token)
+    return _issue_session(db, user, response)
 
 
 @router.post("/logout")
