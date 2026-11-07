@@ -38,6 +38,7 @@ def _issue_session(db: Session, user: UserResponse, response: Response) -> UserS
 		max_age=7 * 24 * 60 * 60,
 		**_session_cookie_attrs(),
 	)
+	print(f"[AUTH DEBUG] Issued session for user {user.email} with token: {token}")
 	return UserSessionResponse(user=user, access_token=token)
 
 

@@ -49,7 +49,11 @@ export default function QrScanner({ onScan, onError, onClose }) {
         streamRef.current = stream;
 
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) {
+          stream.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+          return;
+        }
 
         video.srcObject = stream;
         await video.play();
@@ -96,6 +100,9 @@ export default function QrScanner({ onScan, onError, onClose }) {
 
         frameRef.current = requestAnimationFrame(scanFrame);
       } catch (error) {
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+
         const message =
           error?.name === "NotAllowedError"
             ? "Accès à la caméra refusé."
