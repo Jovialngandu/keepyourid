@@ -1,3 +1,4 @@
+import importlib
 import os
 
 from fastapi import FastAPI
@@ -127,4 +128,6 @@ def debug_runtime():
         "session_fields": list(UserSessionResponse.model_fields.keys()),
         "user_fields": list(UserResponse.model_fields.keys()),
         "commit": os.getenv("RENDER_GIT_COMMIT"),
+         "package_version": importlib.metadata.version("keepyourid-backend"),
+    "package_location": inspect.getfile(UserSessionResponse),
     }
