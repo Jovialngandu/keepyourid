@@ -112,4 +112,5 @@ async def root() -> dict[str, str]:
         "name": settings.app_name,
         "message": "KeepYourID API",
         "docs": "/docs",
+        "kanda":"fort",
     }
