@@ -9,6 +9,10 @@ from keepyourid.core.dependencies import get_db
 from keepyourid.modules.users.schemas import UserLoginRequest, UserRegisterRequest, UserResponse, UserSessionResponse
 from keepyourid.modules.users.service import InvalidCredentialsError, UserAlreadyExistsError, UserService
 
+import inspect
+import logging
+
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
@@ -55,7 +59,23 @@ def login_user(
 	data: UserLoginRequest,
 	response: Response,
 	db: Session = Depends(get_db),
-):
+):	
+	logger = logging.getLogger(__name__)
+
+	logger.warning(
+		"[AUTH DEBUG] schema_file=%s",
+		inspect.getfile(UserSessionResponse),
+	)
+
+	logger.warning(
+		"[AUTH DEBUG] session_fields=%s",
+		list(UserSessionResponse.model_fields.keys()),
+	)
+
+	logger.warning(
+		"[AUTH DEBUG] user_fields=%s",
+		list(UserResponse.model_fields.keys()),
+	)
 	try:
 		user = UserService(db).authenticate(data.email, data.password)
 	except InvalidCredentialsError as exc:
