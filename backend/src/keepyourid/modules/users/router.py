@@ -26,7 +26,7 @@ def _session_cookie_attrs() -> dict:
 	}
 
 
-def _issue_session(db: Session, user, response: Response) -> UserSessionResponse:
+def _issue_session(db: Session, user: UserResponse, response: Response) -> UserSessionResponse:
 	_, token = UserService(db).create_session(user)
 	response.set_cookie(
 		key=SESSION_COOKIE_NAME,
@@ -60,7 +60,6 @@ def login_user(
 		user = UserService(db).authenticate(data.email, data.password)
 	except InvalidCredentialsError as exc:
 		raise HTTPException(status_code=401, detail=str(exc)) from exc
-
 	return _issue_session(db, user, response)
 
 
