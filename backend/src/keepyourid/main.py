@@ -83,6 +83,11 @@ app.include_router(
 
 app.include_router(
     credentials_router,
+    prefix=settings.api_v1_prefix,
+)
+
+app.include_router(
+    credentials_router,
     # prefix=settings.api_v1_prefix,
 )
 
