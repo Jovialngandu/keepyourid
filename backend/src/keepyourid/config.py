@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # Credential verification
     credential_status_list_allowed_hosts: str = ""
 
+    # Session cookie (use samesite="none" + secure=true when the frontend
+    # is served from a different site, e.g. localhost -> Render over HTTPS)
+    session_cookie_samesite: str = "lax"
+    session_cookie_secure: bool | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

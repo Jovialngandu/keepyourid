@@ -3,12 +3,27 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
+from keepyourid.config import get_settings
 from keepyourid.core.auth import SESSION_COOKIE_NAME, get_current_user
 from keepyourid.core.dependencies import get_db
 from keepyourid.modules.users.schemas import UserLoginRequest, UserRegisterRequest, UserResponse, UserSessionResponse
 from keepyourid.modules.users.service import InvalidCredentialsError, UserAlreadyExistsError, UserService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _session_cookie_attrs() -> dict:
+    settings = get_settings()
+    samesite = settings.session_cookie_samesite
+    secure = settings.session_cookie_secure
+    if secure is None:
+        secure = samesite.lower() == "none"
+    return {
+        "httponly": True,
+        "samesite": samesite,
+        "secure": secure,
+        "path": "/",
+    }
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -35,11 +50,8 @@ def login_user(
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=token,
-        httponly=True,
-        samesite="lax",
-        secure=False,
         max_age=7 * 24 * 60 * 60,
-        path="/",
+        **_session_cookie_attrs(),
     )
     return UserSessionResponse(user=user)
 
@@ -52,7 +64,13 @@ def logout_user(
 ):
     token = request.cookies.get(SESSION_COOKIE_NAME)
     UserService(db).logout(token)
-    response.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
+    attrs = _session_cookie_attrs()
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path=attrs["path"],
+        samesite=attrs["samesite"],
+        secure=attrs["secure"],
+    )
     return {"success": True}
 
 
