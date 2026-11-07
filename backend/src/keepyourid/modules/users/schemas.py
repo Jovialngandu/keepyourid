@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
 	id: UUID
 	email: str
 	full_name: str
+	nonce: str = "bozotiangankanda"
 	status: str
 	created_at: datetime
 	updated_at: datetime
