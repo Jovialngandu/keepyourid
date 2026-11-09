@@ -419,7 +419,7 @@ if (activeAccounts[0]?.toLowerCase() !== address.toLowerCase()) {
                 <div className="wallet-identity-icon">ID</div>
 
                 <div className="wallet-identity-content">
-                  <span>HOLDER DID</span>
+                  <span>DID TITULAIRE</span>
 
                   <strong>{shortenAddress(account)}</strong>
 
@@ -509,7 +509,7 @@ if (activeAccounts[0]?.toLowerCase() !== address.toLowerCase()) {
                         <strong>
                           {credential.type?.join(", ") ||
                             credential.credential_type ||
-                            "Verifiable Credential"}
+                            "Credential vérifiable"}
                         </strong>
 
                         <small>

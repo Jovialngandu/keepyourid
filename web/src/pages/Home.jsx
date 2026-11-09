@@ -11,24 +11,24 @@ import "../styles/guide.css";
 const capabilities = [
   {
     number: "01",
-    title: "Issue",
+    title: "Émettre",
     description:
       "Créez et émettez des justificatifs numériques signés à destination de leurs détenteurs.",
-    detail: "Credential issuance",
+    detail: "Émission de justificatifs",
   },
   {
     number: "02",
-    title: "Hold",
+    title: "Détenir",
     description:
       "Permettez aux détenteurs de conserver leurs justificatifs et de les présenter lorsqu'ils en ont besoin.",
-    detail: "Digital wallet",
+    detail: "Wallet numérique",
   },
   {
     number: "03",
-    title: "Verify",
+    title: "Vérifier",
     description:
       "Vérifiez indépendamment l'authenticité, l'émetteur et le statut d'un justificatif.",
-    detail: "Credential verification",
+    detail: "Vérification de justificatifs",
   },
 ];
 
@@ -46,76 +46,76 @@ function Home() {
         <section className="hero">
           <div className="hero-content">
             <span className="eyebrow">
-              DIGITAL IDENTITY INFRASTRUCTURE
+              INFRASTRUCTURE D'IDENTITÉ NUMÉRIQUE
             </span>
 
             <h1>
-              Your identity.
+              Votre identité.
               <br />
-              <span>Your credentials.</span>
+              <span>Vos justificatifs.</span>
               <br />
-              Your control.
+              Votre contrôle.
             </h1>
 
             <p className="hero-description">
-              KeepYourID provides the infrastructure to issue, hold and
-              independently verify digital credentials.
+              KeepYourID fournit l'infrastructure pour émettre, détenir et
+              vérifier indépendamment des justificatifs numériques.
             </p>
 
             <div className="hero-actions">
               <a href="#product" className="button-primary">
-                Explore the platform <span>↗</span>
+                Explorer la plateforme <span>↗</span>
               </a>
 
               <a href="#technology" className="button-secondary">
-                Discover how it works
+                Découvrir le fonctionnement
               </a>
             </div>
           </div>
 
           <div className="hero-visual">
             <div className="visual-heading">
-              <span>THE CREDENTIAL LIFECYCLE</span>
+              <span>LE CYCLE DE VIE DU JUSTIFICATIF</span>
               <span className="live-indicator">●</span>
             </div>
 
             <div className="credential-card">
               <div className="credential-top">
-                <span>VERIFIABLE CREDENTIAL</span>
+                <span>JUSTIFICATIF VÉRIFIABLE</span>
                 <span className="credential-mark">KY</span>
               </div>
 
               <div className="credential-icon">ID</div>
 
-              <h3>Digital identity</h3>
-              <p>A credential you can verify.</p>
+              <h3>Identité numérique</h3>
+              <p>Un justificatif que vous pouvez vérifier.</p>
 
               <div className="credential-bottom">
-                <span>ISSUED BY AN ORGANIZATION</span>
-                <span>✓ SIGNED</span>
+                <span>ÉMIS PAR UNE ORGANISATION</span>
+                <span>✓ SIGNÉ</span>
               </div>
             </div>
 
             <div className="visual-footer">
-              <span>ISSUED</span>
+              <span>ÉMIS</span>
               <span>→</span>
-              <span>HELD</span>
+              <span>DÉTENU</span>
               <span>→</span>
-              <span>VERIFIED</span>
+              <span>VÉRIFIÉ</span>
             </div>
           </div>
         </section>
 
         <section className="intro-section" id="product">
-          <span className="eyebrow">ONE INFRASTRUCTURE</span>
+          <span className="eyebrow">UNE SEULE INFRASTRUCTURE</span>
 
           <div className="intro-heading">
-            <h2>Digital identity, made practical.</h2>
+            <h2>L'identité numérique, en pratique.</h2>
 
             <p>
-              From the organization issuing a credential to the person
-              presenting it, KeepYourID connects the essential parts of
-              digital identity.
+              De l'organisation qui émet un justificatif à la personne
+              qui le présente, KeepYourID relie les pièces essentielles
+              de l'identité numérique.
             </p>
           </div>
 
@@ -174,22 +174,23 @@ function Home() {
 
         <section className="technology-section" id="technology">
           <div>
-            <span className="eyebrow">BUILT ON VERIFIABLE TRUST</span>
-            <h2>Verification should not depend on a single platform.</h2>
+            <span className="eyebrow">BASÉ SUR UNE CONFIANCE VÉRIFIABLE</span>
+            <h2>La vérification ne doit pas dépendre d'une seule plateforme.</h2>
           </div>
 
           <p>
-            Credentials are digitally signed and designed to be verified
-            independently. KeepYourID combines cryptographic proofs,
-            issuer identity and credential status to support that process.
+            Les justificatifs sont signés numériquement et conçus pour être
+            vérifiés indépendamment. KeepYourID combine preuves
+            cryptographiques, identité de l'émetteur et statut du
+            justificatif pour rendre ce processus possible.
           </p>
         </section>
 
         <section className="cta-section" id="solutions">
-          <span className="eyebrow">KEEP YOUR IDENTITY IN CONTROL</span>
-          <h2>Build on verifiable digital identity.</h2>
+          <span className="eyebrow">GARDEZ VOTRE IDENTITÉ SOUS CONTRÔLE</span>
+          <h2>Bâtissez sur l'identité numérique vérifiable.</h2>
           <a href="/organizations/new" className="nav-button">
-  Get started <span>↗</span>
+  Commencer <span>↗</span>
 </a>
         </section>
       </main>
