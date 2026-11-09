@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import ProfileTabs from "../components/guide/ProfileTabs";
+import DemoAccess from "../components/demo/DemoAccess";
 import { guideProfiles } from "../data/guide";
 import "../styles/home.css";
 import "../styles/guide.css";
@@ -43,6 +44,8 @@ function Home() {
       <Navbar />
 
       <main>
+        <DemoAccess />
+
         <section className="hero">
           <div className="hero-content">
             <span className="eyebrow">
