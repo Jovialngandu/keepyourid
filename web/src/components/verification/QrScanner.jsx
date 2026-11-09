@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import jsQR from "jsqr";
+import { BrowserQRCodeReader } from "@zxing/browser";
+import { DecodeHintType } from "@zxing/library";
 
 import "../../styles/verification.css";
 
@@ -67,35 +68,48 @@ export default function QrScanner({ onScan, onError, onClose }) {
           throw new Error("Canvas 2D non disponible.");
         }
 
+        const reader = new BrowserQRCodeReader(
+          new Map([[DecodeHintType.TRY_HARDER, true]])
+        );
+
+        let decoding = false;
+        let lastAttempt = 0;
+
         function scanFrame() {
           if (cancelled || scannedRef.current) return;
 
           frameRef.current = requestAnimationFrame(scanFrame);
 
-          if (!video.videoWidth || !video.videoHeight) return;
+          if (
+            !video.videoWidth ||
+            !video.videoHeight ||
+            decoding
+          ) {
+            return;
+          }
+
+          const now = performance.now();
+          if (now - lastAttempt < 150) return;
+          lastAttempt = now;
 
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
 
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          const imageData = context.getImageData(
-            0,
-            0,
-            canvas.width,
-            canvas.height
-          );
-
-          const code = jsQR(
-            imageData.data,
-            imageData.width,
-            imageData.height
-          );
-
-          if (code?.data && !scannedRef.current) {
-            scannedRef.current = true;
-            onScanRef.current?.(code.data);
-          }
+          decoding = true;
+          reader
+            .decodeFromCanvas(canvas)
+            .then((result) => {
+              if (result && !scannedRef.current) {
+                scannedRef.current = true;
+                onScanRef.current?.(result.getText());
+              }
+            })
+            .catch(() => {})
+            .finally(() => {
+              decoding = false;
+            });
         }
 
         frameRef.current = requestAnimationFrame(scanFrame);
