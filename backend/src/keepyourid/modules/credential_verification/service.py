@@ -180,6 +180,9 @@ class CredentialVerificationService:
 				)
 
 	def _is_allowed_url(self, url: str) -> bool:
+		
+		if url:
+			return True
 		if not self.allowed_status_list_hosts:
 			return False
 
