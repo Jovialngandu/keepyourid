@@ -214,6 +214,63 @@
   color: var(--color-primary);
 }
 
+.guide-faq {
+  margin-top: 48px;
+}
+
+.guide-faq-header {
+  margin-bottom: 22px;
+}
+
+.guide-faq-header h2 {
+  margin: 12px 0 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  color: var(--color-dark);
+}
+
+.guide-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.guide-faq-item {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: white;
+  padding: 16px 20px;
+}
+
+.guide-faq-item summary {
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark);
+  list-style: none;
+}
+
+.guide-faq-item summary::before {
+  content: "+";
+  display: inline-block;
+  width: 22px;
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.guide-faq-item[open] summary::before {
+  content: "–";
+}
+
+.guide-faq-item p {
+  margin: 12px 0 0;
+  padding-left: 22px;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
 @media (max-width: 600px) {
   .guide-page {
     padding: 40px 20px 60px;
