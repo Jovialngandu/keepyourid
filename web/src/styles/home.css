@@ -338,11 +338,38 @@
   font-size: 12px;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .nav-links {
     display: none;
   }
+}
 
+@media (max-width: 768px) {
+  .navbar {
+    height: auto;
+    min-height: 66px;
+    flex-wrap: wrap;
+    padding: 10px 20px;
+    row-gap: 10px;
+  }
+
+  .nav-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nav-button {
+    padding: 9px 13px;
+    font-size: 12px;
+  }
+
+  .nav-logout {
+    padding: 9px 13px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 800px) {
   .hero {
     grid-template-columns: 1fr;
     gap: 45px;
