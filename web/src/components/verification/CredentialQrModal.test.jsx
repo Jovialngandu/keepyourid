@@ -21,11 +21,11 @@ const credential = {
 };
 
 describe("CredentialQrModal", () => {
-  it("renders the QR value from signed_credential only", () => {
+  it("renders a presentation URL in the QR code", () => {
     render(<CredentialQrModal credential={credential} onClose={vi.fn()} />);
 
-    expect(screen.getByTestId("qr-value").textContent).toBe(
-      signedCredential
+    expect(screen.getByTestId("qr-value").textContent).toMatch(
+      /\/verifications\/presentation\/urn%3Auuid%3Atest$/
     );
     expect(screen.queryByText("sql-record-id")).toBeNull();
   });
