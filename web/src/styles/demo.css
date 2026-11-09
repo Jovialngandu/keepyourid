@@ -1,0 +1,149 @@
+.demo-bar {
+  max-width: 1240px;
+  margin: 32px auto 0;
+  padding: 24px 32px;
+  border: 1px dashed var(--color-primary);
+  border-radius: 14px;
+  background: rgba(23, 107, 85, 0.05);
+}
+
+.demo-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.demo-eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.demo-bar-content p {
+  margin: 0;
+  max-width: 560px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.demo-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.demo-button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.demo-button-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.demo-button-primary:hover:not(:disabled) {
+  background: #105440;
+  color: white;
+}
+
+.demo-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.demo-error {
+  margin: 14px 0 0;
+  color: #a33b35;
+  font-size: 13px;
+}
+
+.demo-result {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: white;
+}
+
+.demo-result strong {
+  color: var(--color-dark);
+  font-size: 14px;
+}
+
+.demo-result p {
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.demo-result code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--color-background);
+  color: var(--color-dark);
+  font-size: 12px;
+}
+
+.demo-result .demo-button {
+  margin-top: 14px;
+}
+
+.demo-login-button {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 16px;
+  border: 1px dashed var(--color-primary);
+  border-radius: 8px;
+  background: rgba(23, 107, 85, 0.06);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.demo-login-button:hover:not(:disabled) {
+  background: rgba(23, 107, 85, 0.12);
+}
+
+.demo-login-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (max-width: 640px) {
+  .demo-bar {
+    padding: 20px;
+    margin: 20px 20px 0;
+  }
+
+  .demo-actions {
+    width: 100%;
+  }
+
+  .demo-button {
+    flex: 1;
+    justify-content: center;
+  }
+}
