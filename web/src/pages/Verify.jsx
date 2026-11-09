@@ -4,7 +4,10 @@ import Footer from "../components/layout/Footer";
 import Navbar from "../components/layout/Navbar";
 import QrScanner from "../components/verification/QrScanner";
 import VerificationResult from "../components/verification/VerificationResult";
-import { verifyCredential } from "../services/verification";
+import {
+  fetchCredentialPresentation,
+  verifyCredential,
+} from "../services/verification";
 import { normalizeVerificationInput } from "../utils/verification";
 
 import "../styles/verification.css";
@@ -25,17 +28,31 @@ export default function Verify() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const runVerification = useCallback(async (signedCredential) => {
+  const runVerification = useCallback(async (input) => {
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const data = await verifyCredential(signedCredential);
+      let payload = input;
+
+      if (/^https?:\/\//i.test(String(input).trim())) {
+        const data = await fetchCredentialPresentation(String(input).trim());
+        payload = normalizeVerificationInput(JSON.stringify(data));
+      } else {
+        payload = normalizeVerificationInput(input);
+      }
+
+      const data = await verifyCredential(payload);
       setResult(data);
     } catch (err) {
+      const isInvalid =
+        err?.status === 422 ||
+        err?.name === "SyntaxError" ||
+        /non reconnu|vide|JSON valide/.test(err?.message || "");
+
       setError({
-        kind: err?.status === 422 ? "invalid" : "technical",
+        kind: isInvalid ? "invalid" : "technical",
         message: err?.message || "Erreur inattendue pendant la vérification.",
         status: err?.status,
       });
@@ -47,16 +64,7 @@ export default function Verify() {
   const handleScan = useCallback(
     (text) => {
       setScanning(false);
-
-      try {
-        const payload = normalizeVerificationInput(text);
-        runVerification(payload);
-      } catch (err) {
-        setError({
-          kind: "invalid",
-          message: err?.message || "QR code non reconnu.",
-        });
-      }
+      runVerification(text);
     },
     [runVerification]
   );
@@ -78,8 +86,7 @@ export default function Verify() {
 
       try {
         const text = await readFileAsText(file);
-        const payload = normalizeVerificationInput(text);
-        runVerification(payload);
+        await runVerification(text);
       } catch (err) {
         setError({
           kind: "invalid",
