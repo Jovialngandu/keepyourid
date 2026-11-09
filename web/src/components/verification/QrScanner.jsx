@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import jsQR from "jsqr";
+import { BrowserQRCodeReader } from "@zxing/browser";
+import { DecodeHintType } from "@zxing/library";
 
 import "../../styles/verification.css";
 
@@ -13,6 +14,15 @@ export default function QrScanner({ onScan, onError, onClose }) {
   const onErrorRef = useRef(onError);
 
   const [cameraError, setCameraError] = useState("");
+  const [debugEnabled] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("debug")
+  );
+  const [debugStats, setDebugStats] = useState({ attempts: 0, lastError: "" });
+  const attemptsRef = useRef(0);
+  const lastErrorRef = useRef("");
+  const lastUiUpdateRef = useRef(0);
 
   useEffect(() => {
     onScanRef.current = onScan;
@@ -49,7 +59,11 @@ export default function QrScanner({ onScan, onError, onClose }) {
         streamRef.current = stream;
 
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) {
+          stream.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+          return;
+        }
 
         video.srcObject = stream;
         await video.play();
@@ -63,39 +77,89 @@ export default function QrScanner({ onScan, onError, onClose }) {
           throw new Error("Canvas 2D non disponible.");
         }
 
+        const reader = new BrowserQRCodeReader(
+          new Map([[DecodeHintType.TRY_HARDER, true]])
+        );
+
+        let decoding = false;
+        let lastAttempt = 0;
+
         function scanFrame() {
           if (cancelled || scannedRef.current) return;
 
           frameRef.current = requestAnimationFrame(scanFrame);
 
-          if (!video.videoWidth || !video.videoHeight) return;
+          if (
+            !video.videoWidth ||
+            !video.videoHeight ||
+            decoding
+          ) {
+            return;
+          }
+
+          const now = performance.now();
+          if (now - lastAttempt < 150) return;
+          lastAttempt = now;
 
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
 
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          const imageData = context.getImageData(
-            0,
-            0,
-            canvas.width,
-            canvas.height
-          );
+          decoding = true;
 
-          const code = jsQR(
-            imageData.data,
-            imageData.width,
-            imageData.height
-          );
+          let settled = false;
+          const finishAttempt = (errName) => {
+            if (settled) return;
+            settled = true;
 
-          if (code?.data && !scannedRef.current) {
-            scannedRef.current = true;
-            onScanRef.current?.(code.data);
+            decoding = false;
+            attemptsRef.current += 1;
+            if (errName) {
+              lastErrorRef.current = errName;
+            }
+
+            const nowUi = performance.now();
+            if (
+              debugEnabled &&
+              nowUi - lastUiUpdateRef.current > 1000
+            ) {
+              lastUiUpdateRef.current = nowUi;
+              setDebugStats({
+                attempts: attemptsRef.current,
+                lastError: lastErrorRef.current,
+              });
+            }
+          };
+
+          const handleResult = (result) => {
+            if (result && !scannedRef.current) {
+              scannedRef.current = true;
+              onScanRef.current?.(result.getText());
+            }
+          };
+
+          try {
+            const out = reader.decodeFromCanvas(canvas);
+            if (out && typeof out.then === "function") {
+              out
+                .then(handleResult)
+                .catch((err) => finishAttempt(err?.name || String(err)))
+                .finally(() => finishAttempt(""));
+            } else {
+              handleResult(out);
+              finishAttempt("");
+            }
+          } catch (err) {
+            finishAttempt(err?.name || String(err));
           }
         }
 
         frameRef.current = requestAnimationFrame(scanFrame);
       } catch (error) {
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+
         const message =
           error?.name === "NotAllowedError"
             ? "Accès à la caméra refusé."
@@ -118,7 +182,7 @@ export default function QrScanner({ onScan, onError, onClose }) {
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [debugEnabled]);
 
   return (
     <div className="qr-scanner">
@@ -127,6 +191,15 @@ export default function QrScanner({ onScan, onError, onClose }) {
 
         {cameraError && (
           <p className="qr-scanner-error">{cameraError}</p>
+        )}
+
+        {debugEnabled && !cameraError && (
+          <p className="qr-scanner-debug">
+            DEBUG · {debugStats.attempts} tentatives
+            {debugStats.lastError
+              ? ` · dernière erreur : ${debugStats.lastError}`
+              : ""}
+          </p>
         )}
       </div>
 

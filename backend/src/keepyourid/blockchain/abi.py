@@ -1,23 +1,15 @@
 import json
-from pathlib import Path
+from importlib.resources import files
 
 
 def load_issuer_registry_abi() -> list[dict]:
     artifact_path = (
-        Path(__file__).resolve().parents[3]
-        / "contracts"
-        / "out"
-        / "IssuerRegistry.sol"
-        / "IssuerRegistry.json"
+        files("keepyourid.blockchain")
+        .joinpath("artifacts/IssuerRegistry.json")
     )
 
-    if not artifact_path.exists():
-        raise FileNotFoundError(
-            f"IssuerRegistry artifact not found: {artifact_path}. "
-            "Run forge build first."
-        )
-
-    with artifact_path.open(encoding="utf-8") as file:
-        artifact = json.load(file)
+    artifact = json.loads(
+        artifact_path.read_text(encoding="utf-8")
+    )
 
     return artifact["abi"]

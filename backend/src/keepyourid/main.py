@@ -1,3 +1,4 @@
+import importlib
 import os
 
 from fastapi import FastAPI
@@ -19,7 +20,8 @@ from keepyourid.modules.organizations.membership_router import (
     router as organization_membership_router,
 )
 from keepyourid.modules.organizations.router import router as organizations_router
-from keepyourid.modules.users.router import router as users_router
+from keepyourid.modules.users.router import login_user, router as users_router
+from keepyourid.modules.users.schemas import UserResponse, UserSessionResponse
 
 
 def get_ethereum_adapter() -> EthereumAdapter:
@@ -112,4 +114,20 @@ async def root() -> dict[str, str]:
         "name": settings.app_name,
         "message": "KeepYourID API",
         "docs": "/docs",
+        "kanda":"fort",
+    }
+
+import inspect
+
+
+@app.get("/debug/runtime")
+def debug_runtime():
+    return {
+        "login_file": inspect.getfile(login_user),
+        "session_schema_file": inspect.getfile(UserSessionResponse),
+        "session_fields": list(UserSessionResponse.model_fields.keys()),
+        "user_fields": list(UserResponse.model_fields.keys()),
+        "commit": os.getenv("RENDER_GIT_COMMIT"),
+         "package_version": importlib.metadata.version("keepyourid-backend"),
+    "package_location": inspect.getfile(UserSessionResponse),
     }

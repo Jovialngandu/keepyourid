@@ -1,20 +1,26 @@
 import { useState } from "react";
 import QRCode from "react-qr-code";
 
+import {
+  getCredentialPresentationUrl,
+} from "../../services/verification";
 import { getCredentialQrValue } from "../../utils/verification";
 import "../../styles/verification.css";
 
 export default function CredentialQrModal({ credential, onClose }) {
-  const value = getCredentialQrValue(credential);
+  const jsonValue = getCredentialQrValue(credential);
+  const qrValue = credential?.credential_id
+    ? getCredentialPresentationUrl(credential.credential_id)
+    : jsonValue;
   const [copied, setCopied] = useState(false);
 
-  if (!value) {
+  if (!qrValue) {
     return null;
   }
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(jsonValue);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -48,7 +54,7 @@ export default function CredentialQrModal({ credential, onClose }) {
         <h2>Credential présentée</h2>
 
         <div className="qr-code-frame">
-          <QRCode value={value} size={216} level="M" />
+          <QRCode value={qrValue} size={216} level="M" />
         </div>
 
         <div className="qr-modal-actions">
@@ -62,8 +68,8 @@ export default function CredentialQrModal({ credential, onClose }) {
         </div>
 
         <p>
-          Ce QR code contient uniquement l'enveloppe{" "}
-          <code>signed_credential</code>.
+          Ce QR code contient un lien vers la présentation de la
+          credential.
         </p>
       </div>
     </div>

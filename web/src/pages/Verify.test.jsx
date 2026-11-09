@@ -6,6 +6,7 @@ import { verifyCredential } from "../services/verification";
 
 vi.mock("../services/verification", () => ({
   verifyCredential: vi.fn(),
+  fetchCredentialPresentation: vi.fn(),
 }));
 
 vi.mock("../components/layout/Navbar", () => ({
