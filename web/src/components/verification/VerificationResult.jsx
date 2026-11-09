@@ -77,7 +77,7 @@ export default function VerificationResult({ result, error, loading }) {
 
       <div className="verification-meta">
         <div>
-          <span>Credential ID</span>
+          <span>ID du credential</span>
           <strong>{result.credential_id || "Non fourni"}</strong>
         </div>
 
