@@ -14,6 +14,15 @@ export default function QrScanner({ onScan, onError, onClose }) {
   const onErrorRef = useRef(onError);
 
   const [cameraError, setCameraError] = useState("");
+  const [debugEnabled] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("debug")
+  );
+  const [debugStats, setDebugStats] = useState({ attempts: 0, lastError: "" });
+  const attemptsRef = useRef(0);
+  const lastErrorRef = useRef("");
+  const lastUiUpdateRef = useRef(0);
 
   useEffect(() => {
     onScanRef.current = onScan;
@@ -98,18 +107,52 @@ export default function QrScanner({ onScan, onError, onClose }) {
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           decoding = true;
-          reader
-            .decodeFromCanvas(canvas)
-            .then((result) => {
-              if (result && !scannedRef.current) {
-                scannedRef.current = true;
-                onScanRef.current?.(result.getText());
-              }
-            })
-            .catch(() => {})
-            .finally(() => {
-              decoding = false;
-            });
+
+          let settled = false;
+          const finishAttempt = (errName) => {
+            if (settled) return;
+            settled = true;
+
+            decoding = false;
+            attemptsRef.current += 1;
+            if (errName) {
+              lastErrorRef.current = errName;
+            }
+
+            const nowUi = performance.now();
+            if (
+              debugEnabled &&
+              nowUi - lastUiUpdateRef.current > 1000
+            ) {
+              lastUiUpdateRef.current = nowUi;
+              setDebugStats({
+                attempts: attemptsRef.current,
+                lastError: lastErrorRef.current,
+              });
+            }
+          };
+
+          const handleResult = (result) => {
+            if (result && !scannedRef.current) {
+              scannedRef.current = true;
+              onScanRef.current?.(result.getText());
+            }
+          };
+
+          try {
+            const out = reader.decodeFromCanvas(canvas);
+            if (out && typeof out.then === "function") {
+              out
+                .then(handleResult)
+                .catch((err) => finishAttempt(err?.name || String(err)))
+                .finally(() => finishAttempt(""));
+            } else {
+              handleResult(out);
+              finishAttempt("");
+            }
+          } catch (err) {
+            finishAttempt(err?.name || String(err));
+          }
         }
 
         frameRef.current = requestAnimationFrame(scanFrame);
@@ -139,7 +182,7 @@ export default function QrScanner({ onScan, onError, onClose }) {
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [debugEnabled]);
 
   return (
     <div className="qr-scanner">
@@ -148,6 +191,15 @@ export default function QrScanner({ onScan, onError, onClose }) {
 
         {cameraError && (
           <p className="qr-scanner-error">{cameraError}</p>
+        )}
+
+        {debugEnabled && !cameraError && (
+          <p className="qr-scanner-debug">
+            DEBUG · {debugStats.attempts} tentatives
+            {debugStats.lastError
+              ? ` · dernière erreur : ${debugStats.lastError}`
+              : ""}
+          </p>
         )}
       </div>
 
