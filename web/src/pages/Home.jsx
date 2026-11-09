@@ -1,6 +1,12 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
+import ProfileTabs from "../components/guide/ProfileTabs";
+import { guideProfiles } from "../data/guide";
 import "../styles/home.css";
+import "../styles/guide.css";
 
 const capabilities = [
   {
@@ -27,6 +33,11 @@ const capabilities = [
 ];
 
 function Home() {
+  const [activeGuide, setActiveGuide] = useState(guideProfiles[0].id);
+  const guideProfile =
+    guideProfiles.find((item) => item.id === activeGuide) ||
+    guideProfiles[0];
+
   return (
     <>
       <Navbar />
@@ -124,6 +135,41 @@ function Home() {
               </article>
             ))}
           </div>
+        </section>
+
+        <section className="guide-teaser" id="guide">
+          <div className="guide-teaser-header">
+            <span className="eyebrow">PARCOURS GUIDÉS</span>
+            <h2>Choisissez votre rôle, on vous guide.</h2>
+            <p>
+              Organisateur, titulaire ou vérificateur : chaque profil a son
+              parcours pas à pas.
+            </p>
+          </div>
+
+          <ProfileTabs
+            profiles={guideProfiles}
+            activeId={guideProfile.id}
+            onChange={setActiveGuide}
+          />
+
+          <ol className="guide-teaser-steps">
+            {guideProfile.steps.map((step, index) => (
+              <li key={step.title}>
+                <span className="guide-step-number">{index + 1}</span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <Link to={step.link.to} className="guide-step-link">
+                    {step.link.label} <span>→</span>
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <Link to="/help" className="guide-teaser-cta">
+            Voir le guide complet <span>↗</span>
+          </Link>
         </section>
 
         <section className="technology-section" id="technology">

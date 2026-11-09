@@ -30,6 +30,7 @@ function Navbar() {
         <a href="/#product">Produit</a>
         <a href="/#solutions">Solutions</a>
         <a href="/#technology">Technologie</a>
+        <Link to="/help">Guide</Link>
       </nav>
 
       <div className="nav-actions">
