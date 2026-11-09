@@ -68,7 +68,7 @@ function Navbar() {
             </Link>
 
             <Link to="/register" className="nav-button">
-              Get started <span>↗</span>
+              Commencer <span>↗</span>
             </Link>
           </>
         )}
