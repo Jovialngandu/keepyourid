@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import ProfileTabs from "../components/guide/ProfileTabs";
-import { guideProfiles } from "../data/guide";
+import { guideProfiles, faqItems } from "../data/guide";
 
 import "../styles/guide.css";
 
@@ -60,6 +60,22 @@ export default function Help() {
               </li>
             ))}
           </ol>
+        </section>
+
+        <section className="guide-faq">
+          <div className="guide-faq-header">
+            <span className="eyebrow">FAQ</span>
+            <h2>Questions fréquentes</h2>
+          </div>
+
+          <div className="guide-faq-list">
+            {faqItems.map((item) => (
+              <details className="guide-faq-item" key={item.question}>
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
         </section>
       </main>
 

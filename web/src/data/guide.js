@@ -1,3 +1,36 @@
+export const faqItems = [
+  {
+    question: "Qu'est-ce qu'un justificatif vérifiable (credential) ?",
+    answer:
+      "C'est un document numérique signé cryptographiquement par une organisation émettrice. Son authenticité peut être vérifiée par n'importe quel tiers sans dépendre d'une plateforme centrale.",
+  },
+  {
+    question: "Ai-je besoin de créer un compte pour vérifier un justificatif ?",
+    answer:
+      "Non. La page de vérification est publique : scannez le QR code ou importez le fichier JSON sans être connecté.",
+  },
+  {
+    question: "Pourquoi MetaMask et le réseau Sepolia ?",
+    answer:
+      "Sepolia est un réseau de test Ethereum. MetaMask permet de prouver le contrôle de votre adresse et de signer les challenges d'authentification du DID. En production, un autre réseau sera utilisé.",
+  },
+  {
+    question: "Que contient le QR code de présentation ?",
+    answer:
+      "Le QR code contient un lien vers la présentation du justificatif signé. Le vérificateur scanne ce lien, récupère le credential et vérifie sa signature, son émetteur, sa non-révocation et sa validité.",
+  },
+  {
+    question: "Que se passe-t-il si un justificatif est révoqué ?",
+    answer:
+      "La révocation est publiée dans une liste de statut signée par l'émetteur. Toute vérification ultérieure du justificatif affichera un verdict d'échec sur le critère de révocation.",
+  },
+  {
+    question: "Puis-je utiliser l'application pour une démonstration ?",
+    answer:
+      "Oui. La page d'accueil propose un compte de test ainsi qu'un générateur d'utilisateur aléatoire avec organisation incluse. Utilisez un wallet de test pour la démonstration.",
+  },
+];
+
 export const guideProfiles = [
   {
     id: "issuer",
