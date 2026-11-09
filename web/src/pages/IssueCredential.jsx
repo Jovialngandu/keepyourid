@@ -66,8 +66,8 @@ export default function IssueCredential() {
             ← Retour au dashboard
           </Link>
 
-          <span className="issue-eyebrow">VERIFIABLE CREDENTIALS</span>
-          <h1>Issue a credential.</h1>
+          <span className="issue-eyebrow">JUSTIFICATIFS VÉRIFIABLES</span>
+          <h1>Émettez un justificatif.</h1>
           <p>
             Crée une attestation numérique destinée à un détenteur.
             Elle sera signée par l'identité de ton organisation.
@@ -76,7 +76,7 @@ export default function IssueCredential() {
 
         <form className="issue-layout" onSubmit={handleSubmit}>
           <section className="issue-card">
-            <div className="issue-step">01 — CREDENTIAL INFORMATION</div>
+            <div className="issue-step">01 — INFORMATIONS DU JUSTIFICATIF</div>
             <h2>Informations du credential</h2>
 
             <label htmlFor="credentialType">Type de credential</label>
@@ -103,7 +103,7 @@ export default function IssueCredential() {
           </section>
 
           <section className="issue-card">
-            <div className="issue-step">02 — CREDENTIAL CLAIMS</div>
+            <div className="issue-step">02 — DONNÉES ATTESTÉES</div>
             <h2>Données attestées</h2>
 
             <p>
@@ -128,7 +128,7 @@ export default function IssueCredential() {
           </section>
 
           <section className="issue-card issue-review">
-            <div className="issue-step">03 — REVIEW</div>
+            <div className="issue-step">03 — REVUE</div>
             <h2>Vérifier avant émission</h2>
 
             <div className="issue-review-row">
@@ -153,7 +153,7 @@ export default function IssueCredential() {
             )}
 
             <button className="issue-button" type="submit">
-              Validate credential information
+              Valider les informations du justificatif
             </button>
 
             <p className="issue-hint">
