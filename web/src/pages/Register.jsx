@@ -42,7 +42,7 @@ function Register() {
       <section className="auth-card">
         <Link to="/" className="auth-brand">keepyourid.</Link>
 
-        <h1>Create your account</h1>
+        <h1>Créez votre compte</h1>
         <p>Créez votre compte pour accéder à KeepYourID.</p>
 
         <form onSubmit={handleSubmit}>
