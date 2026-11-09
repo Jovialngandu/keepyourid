@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import defaultdict, deque
 from functools import lru_cache
@@ -5,9 +6,13 @@ from time import monotonic
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from keepyourid_verifier.engine import CredentialVerifier
+from sqlalchemy.orm import Session
 
 from keepyourid.config import get_settings
+from keepyourid.core.dependencies import get_db
+from keepyourid.modules.credentials.repository import CredentialRepository
 from keepyourid.modules.credential_verification.schemas import (
     CredentialVerificationRequest,
     CredentialVerificationResponse,
@@ -62,6 +67,23 @@ def get_credential_verification_service() -> CredentialVerificationService:
         verifier=get_credential_verifier(),
         allowed_status_list_hosts=settings.credential_status_list_allowed_hosts,
     )
+
+
+@router.get("/presentation/{credential_id}")
+def get_credential_presentation(
+    credential_id: str,
+    _rate_limit: Annotated[None, Depends(verify_rate_limit)],
+    db: Session = Depends(get_db),
+):
+    credential = CredentialRepository(db).get_by_credential_id(credential_id)
+
+    if credential is None or not credential.signed_credential:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Credential not found.",
+        )
+
+    return JSONResponse(content=json.loads(credential.signed_credential))
 
 
 @router.post(
