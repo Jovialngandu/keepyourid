@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { DEMO_ACCOUNT } from "../data/demo";
 
 function Login() {
   const { login, user, loading } = useAuth();
@@ -11,9 +12,24 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   if (loading) return <div className="page-loading">Chargement...</div>;
   if (user) return <Navigate to="/organizations" replace />;
+
+  async function handleDemoLogin() {
+    setError("");
+    setDemoLoading(true);
+
+    try {
+      await login(DEMO_ACCOUNT);
+      navigate("/organizations", { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDemoLoading(false);
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -69,6 +85,17 @@ function Login() {
         <p>
           Pas encore de compte ? <Link to="/register">Créer un compte</Link>
         </p>
+
+        <button
+          type="button"
+          className="demo-login-button"
+          onClick={handleDemoLogin}
+          disabled={submitting || demoLoading}
+        >
+          {demoLoading
+            ? "Connexion au compte de test..."
+            : "Essayer le compte de test"}
+        </button>
       </section>
     </main>
   );
