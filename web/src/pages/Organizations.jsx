@@ -35,7 +35,7 @@ function Organizations() {
       <main className="organizations-page">
         <section className="organizations-header">
           <div>
-            <span className="eyebrow">WORKSPACE</span>
+            <span className="eyebrow">ESPACE DE TRAVAIL</span>
             <h1>Mes organisations</h1>
             <p>
               Gérez vos organisations, leurs identités décentralisées et
