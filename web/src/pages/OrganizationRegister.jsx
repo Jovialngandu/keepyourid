@@ -65,26 +65,26 @@ function OrganizationRegister() {
         <section className="registration-card success-card">
           <div className="success-icon">✓</div>
 
-          <span className="eyebrow">ORGANIZATION CREATED</span>
+          <span className="eyebrow">ORGANISATION CRÉÉE</span>
 
-          <h1>You're in.</h1>
+          <h1>C'est fait.</h1>
 
-          <p>Your organization has been registered successfully.</p>
+          <p>Votre organisation a été enregistrée avec succès.</p>
 
           <div className="organization-summary">
-            <span>Organization</span>
+            <span>Organisation</span>
             <strong>{organization.legal_name}</strong>
 
-            <span>Registration number</span>
+            <span>Numéro d'enregistrement</span>
             <strong>{organization.registration_number}</strong>
 
-            <span>Status</span>
+            <span>Statut</span>
             <strong>{organization.status}</strong>
           </div>
 
           <p className="success-note">
-            Your organization is registered. The next step is to
-            associate and verify its digital identity.
+            Votre organisation est enregistrée. L'étape suivante consiste
+            à associer et vérifier son identité numérique.
           </p>
 
           <button
@@ -92,7 +92,7 @@ function OrganizationRegister() {
             className="registration-button"
             onClick={() => navigate(`/organizations/${organization.id}`)}
           >
-            Continue <span>→</span>
+            Continuer <span>→</span>
           </button>
         </section>
       </main>
@@ -107,25 +107,26 @@ function OrganizationRegister() {
         </Link>
 
         <div className="registration-heading">
-          <span className="eyebrow">GET STARTED</span>
+          <span className="eyebrow">POUR COMMENCER</span>
 
-          <h1>Register your organization.</h1>
+          <h1>Enregistrez votre organisation.</h1>
 
           <p>
-            Start by providing your organization's legal information.
-            You will be able to associate its digital identity next.
+            Commencez par renseigner les informations légales de votre
+            organisation. Vous pourrez ensuite associer son identité
+            numérique.
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-field">
-            <label htmlFor="legal_name">Legal name</label>
+            <label htmlFor="legal_name">Raison sociale</label>
             <input
               id="legal_name"
               name="legal_name"
               value={form.legal_name}
               onChange={handleChange}
-              placeholder="Your organization's legal name"
+              placeholder="Raison sociale de l'organisation"
               minLength={2}
               maxLength={255}
               required
@@ -134,21 +135,21 @@ function OrganizationRegister() {
 
           <div className="form-field">
             <label htmlFor="registration_number">
-              Registration number
+              Numéro d'enregistrement
             </label>
             <input
               id="registration_number"
               name="registration_number"
               value={form.registration_number}
               onChange={handleChange}
-              placeholder="Official registration number"
+              placeholder="Numéro d'enregistrement officiel"
               maxLength={100}
               required
             />
           </div>
 
           <div className="form-field">
-            <label htmlFor="email">Organization email</label>
+            <label htmlFor="email">Email de l'organisation</label>
             <input
               id="email"
               name="email"
@@ -162,7 +163,7 @@ function OrganizationRegister() {
 
           <div className="form-field">
             <label htmlFor="phone">
-              Phone number <span>Optional</span>
+              Téléphone <span>Facultatif</span>
             </label>
             <input
               id="phone"
@@ -186,13 +187,13 @@ function OrganizationRegister() {
             className="registration-button"
             disabled={loading}
           >
-            {loading ? "Registering..." : "Create organization"}
+            {loading ? "Enregistrement..." : "Créer l'organisation"}
             {!loading && <span>→</span>}
           </button>
         </form>
 
         <p className="registration-footer">
-          Already have an account? <Link to="/login">Sign in</Link>
+          Déjà un compte ? <Link to="/login">Se connecter</Link>
         </p>
       </section>
     </main>

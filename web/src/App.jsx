@@ -14,6 +14,7 @@ import Credentials from "./pages/Credentials";
 import Wallet from "./pages/Wallet";
 import Verify from "./pages/Verify";
 import Help from "./pages/Help";
+import NotFound from "./pages/NotFound";
 
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -58,6 +59,8 @@ function App() {
 
 			<Route path="/organizations" element={<Organizations />} />
           </Route>
+
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

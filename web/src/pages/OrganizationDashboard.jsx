@@ -123,7 +123,7 @@ export default function OrganizationDashboard() {
     return (
       <>
         <Navbar />
-        <main className="dashboard-loading">Loading workspace...</main>
+        <main className="dashboard-loading">Chargement de l'espace...</main>
         <Footer />
       </>
     );
@@ -134,9 +134,9 @@ export default function OrganizationDashboard() {
       <>
         <Navbar />
         <main className="dashboard-error">
-          <h2>Unable to load workspace</h2>
-          <p>{error || "The organization could not be loaded."}</p>
-          <Link to="/organizations">Return to organizations</Link>
+          <h2>Impossible de charger l'espace</h2>
+          <p>{error || "L'organisation n'a pas pu être chargée."}</p>
+          <Link to="/organizations">Retour aux organisations</Link>
         </main>
         <Footer />
       </>
@@ -156,24 +156,24 @@ export default function OrganizationDashboard() {
 
   const recentActivity = [
     ...dids.map((did) => ({
-      type: "DID registration",
+      type: "Enregistrement de DID",
       label: did.identifier || "DID",
       date: did.created_at || did.updated_at,
       status: did.status,
     })),
     ...credentials.map((credential) => ({
-      type: credential.status === "REVOKED" ? "Credential revocation" : "Credential issuance",
+      type: credential.status === "REVOKED" ? "Révocation de justificatif" : "Émission de justificatif",
       label:
         credential.credential_type ||
         credential.type ||
         credential.credential_id ||
-        "Verifiable credential",
+        "Justificatif vérifiable",
       date: credential.created_at || credential.issued_at,
       status: credential.status,
     })),
     ...transactions.map((transaction) => ({
-      type: transaction.operation || "Blockchain operation",
-      label: transaction.transaction_hash || "Transaction recorded",
+      type: transaction.operation || "Opération blockchain",
+      label: transaction.transaction_hash || "Transaction enregistrée",
       date: transaction.created_at || transaction.updated_at,
       status: transaction.status,
     })),
@@ -188,11 +188,11 @@ export default function OrganizationDashboard() {
       <main className="organization-dashboard">
         <header className="dashboard-header">
           <div>
-            <span className="eyebrow">ISSUER DASHBOARD</span>
+            <span className="eyebrow">TABLEAU DE BORD ÉMETTEUR</span>
             <h1>{organization.legal_name}</h1>
             <p>
-              Monitor your credential issuance, digital identity and recent
-              issuer operations.
+              Suivez l'émission de vos justificatifs, votre identité
+              numérique et vos dernières opérations.
             </p>
           </div>
 
@@ -201,65 +201,67 @@ export default function OrganizationDashboard() {
 
         <section className="dashboard-metrics" aria-label="Overview statistics">
           <Metric
-            label="Total credentials issued"
+            label="Total des justificatifs émis"
             value={totalCredentials}
-            description="All credentials created"
+            description="Tous les justificatifs créés"
           />
           <Metric
-            label="Active credentials"
+            label="Justificatifs actifs"
             value={activeCredentials}
-            description="Currently in use"
+            description="Actuellement utilisés"
           />
           <Metric
-            label="Revoked credentials"
+            label="Justificatifs révoqués"
             value={revokedCredentials}
-            description="Revoked from circulation"
+            description="Retirés de la circulation"
           />
           <Metric
-            label="Registered DIDs"
+            label="DID enregistrés"
             value={registeredDids}
-            description="Linked issuer identities"
+            description="Identités d'émetteur liées"
           />
         </section>
 
-        <section className="dashboard-actions" aria-label="Quick actions">
-          <button type="button" className="dashboard-action dashboard-action--active" disabled>
-            Issue a new credential
-            <span>Coming soon</span>
-          </button>
-
-          <a className="dashboard-action" href="#issued-credentials">
-            View issued credentials
-          </a>
-
-          <Link   to={`/organizations/${organizationId}/identity`}>
-            Manage issuer DIDs
+        <section className="dashboard-actions" aria-label="Actions rapides">
+          <Link
+            className="dashboard-action dashboard-action--active"
+            to={`/organizations/${organizationId}/credentials`}
+          >
+            Émettre un justificatif
           </Link>
 
-<Link className="dashboard-action"  to={`/organizations/${organizationId}/credentials`}>
-  Gérer les justificatifs
-</Link>
-		  
+          <Link
+            className="dashboard-action"
+            to={`/organizations/${organizationId}/identity`}
+          >
+            Gérer les DID émetteurs
+          </Link>
 
-          <button type="button" className="dashboard-action dashboard-action--muted" disabled>
-            View revocation records
-            <span>Coming soon</span>
-          </button>
+          <a className="dashboard-action" href="#issued-credentials">
+            Voir les justificatifs émis
+          </a>
+
+          <Link
+            className="dashboard-action"
+            to={`/organizations/${organizationId}/credentials`}
+          >
+            Gérer les justificatifs
+          </Link>
         </section>
 
         <section className="dashboard-grid">
           <article className="dashboard-panel dashboard-panel--wide">
             <div className="panel-heading">
               <div>
-                <span className="eyebrow">ACTIVITY</span>
-                <h2>Recent activity</h2>
+                <span className="eyebrow">ACTIVITÉ</span>
+                <h2>Activité récente</h2>
               </div>
             </div>
 
             {recentActivity.length === 0 ? (
               <div className="empty-state">
-                <h3>No issuer activity yet</h3>
-                <p>Once credentials or DIDs are created, they will appear here.</p>
+                <h3>Aucune activité d'émission pour le moment</h3>
+                <p>Une fois des justificatifs ou des DID créés, ils apparaîtront ici.</p>
               </div>
             ) : (
               <ul className="activity-list">
@@ -283,15 +285,15 @@ export default function OrganizationDashboard() {
           <article id="issued-credentials" className="dashboard-panel">
             <div className="panel-heading">
               <div>
-                <span className="eyebrow">CREDENTIALS</span>
-                <h2>Credential overview</h2>
+                <span className="eyebrow">JUSTIFICATIFS</span>
+                <h2>Vue d'ensemble des justificatifs</h2>
               </div>
             </div>
 
             {credentials.length === 0 ? (
               <div className="empty-state">
-                <h3>No credentials issued yet</h3>
-                <p>Your recent credential history will appear here.</p>
+                <h3>Aucun justificatif émis pour le moment</h3>
+                <p>Votre historique récent de justificatifs apparaîtra ici.</p>
               </div>
             ) : (
               <ul className="credential-list">
@@ -301,12 +303,12 @@ export default function OrganizationDashboard() {
                     credential.holder_id ||
                     credential.subject?.id ||
                     credential.credential_subject?.id ||
-                    "Unknown holder";
+                    "Titulaire inconnu";
 
                   return (
                     <li key={credential.id} className="credential-item">
                       <div className="credential-main">
-                        <strong>{credential.credential_type || "Verifiable credential"}</strong>
+                        <strong>{credential.credential_type || "Justificatif vérifiable"}</strong>
                         <small>{holder}</small>
                       </div>
 

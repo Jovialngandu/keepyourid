@@ -35,7 +35,7 @@ function Login() {
       <section className="auth-card">
         <Link to="/" className="auth-brand">keepyourid.</Link>
 
-        <h1>Welcome back</h1>
+        <h1>Bon retour</h1>
         <p>Connectez-vous à votre espace KeepYourID.</p>
 
         <form onSubmit={handleSubmit}>

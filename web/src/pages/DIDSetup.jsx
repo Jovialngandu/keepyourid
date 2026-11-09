@@ -201,7 +201,7 @@ export default function DIDSetup() {
 
         <span className="did-eyebrow">IDENTITÉ NUMÉRIQUE</span>
 
-        <h1>Connect your identity.</h1>
+        <h1>Connectez votre identité.</h1>
 
         <p>
           Associe une identité décentralisée à ton organisation et
@@ -214,7 +214,7 @@ export default function DIDSetup() {
 
       <section className="did-card">
         <div className="did-step">01 — WALLET</div>
-        <h2>Connect your wallet</h2>
+        <h2>Connectez votre wallet</h2>
 
         <p>
           Ton wallet permet de prouver le contrôle de l'adresse
@@ -232,14 +232,14 @@ export default function DIDSetup() {
             onClick={handleConnectWallet}
             disabled={processing}
           >
-            Connect wallet
+            Connecter le wallet
           </button>
         )}
       </section>
 
       <section className="did-card">
-        <div className="did-step">02 — DECENTRALIZED IDENTITY</div>
-        <h2>Associate your DID</h2>
+        <div className="did-step">02 — IDENTITÉ DÉCENTRALISÉE</div>
+        <h2>Associez votre DID</h2>
 
         {did ? (
           <div className="did-information">
@@ -262,15 +262,15 @@ export default function DIDSetup() {
               onClick={handleAssociateDID}
               disabled={!account || processing}
             >
-              {processing ? "Association..." : "Associate DID"}
+              {processing ? "Association..." : "Associer le DID"}
             </button>
           </>
         )}
       </section>
 
       <section className="did-card">
-        <div className="did-step">03 — OWNERSHIP PROOF</div>
-        <h2>Verify ownership</h2>
+        <div className="did-step">03 — PREUVE DE CONTRÔLE</div>
+        <h2>Vérifiez la propriété</h2>
 
         <p>
           KeepYourID génère un challenge unique. Ton wallet signe
@@ -288,21 +288,21 @@ export default function DIDSetup() {
           }
         >
           {processing
-            ? "Verification..."
+            ? "Vérification..."
             : did?.status === "VERIFIED"
-              ? "DID verified"
-              : "Verify DID"}
+              ? "DID vérifié"
+              : "Vérifier le DID"}
         </button>
 
         {verification && (
           <div className="did-verification-result">
-            <strong>Verification result</strong>
+            <strong>Résultat de la vérification</strong>
 
-            <p>Status : {verification.status}</p>
-            <p>Signer : {verification.signer_address}</p>
+            <p>Statut : {verification.status}</p>
+            <p>Signataire : {verification.signer_address}</p>
 
             <p>
-              Verification method :{" "}
+              Méthode de vérification :{" "}
               {verification.verification_method}
             </p>
 
@@ -310,10 +310,10 @@ export default function DIDSetup() {
               <>
                 <hr />
 
-                <strong>Blockchain registration</strong>
+                <strong>Enregistrement blockchain</strong>
 
                 <p>
-                  Status :{" "}
+                  Statut :{" "}
                   {getBlockchainStatusLabel(
                     blockchainRegistration.status
                   )}

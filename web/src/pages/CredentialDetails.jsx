@@ -14,16 +14,16 @@ export default function CredentialDetails() {
       <main className="credentials-page">
         <header className="credentials-header">
           <Link to={`/organizations/${organizationId}/credentials`}>
-            ← Retour aux credentials
+            ← Retour aux justificatifs
           </Link>
 
           <span className="credentials-eyebrow">
-            CREDENTIAL DETAILS
+            DÉTAILS DU JUSTIFICATIF
           </span>
 
-          <h1>Credential details.</h1>
+          <h1>Détails du justificatif.</h1>
           <p>
-            Consulte les informations et le statut de cette
+            Consultez les informations et le statut de cette
             attestation numérique.
           </p>
         </header>
@@ -32,17 +32,17 @@ export default function CredentialDetails() {
           <div className="credential-detail-heading">
             <div>
               <span className="credentials-eyebrow">
-                CREDENTIAL IDENTIFIER
+                IDENTIFIANT DU JUSTIFICATIF
               </span>
               <h2>{credentialId}</h2>
             </div>
             <span className="credential-status pending">
-              Awaiting API data
+              En attente des données API
             </span>
           </div>
 
           <div className="credential-detail-section">
-            <h3>Credential information</h3>
+            <h3>Informations du justificatif</h3>
             <p>
               Les informations du credential seront chargées depuis
               le backend.
@@ -50,17 +50,17 @@ export default function CredentialDetails() {
           </div>
 
           <div className="credential-detail-section">
-            <h3>Holder</h3>
+            <h3>Titulaire</h3>
             <p>DID du détenteur : non chargé</p>
           </div>
 
           <div className="credential-detail-section">
-            <h3>Issuer</h3>
+            <h3>Émetteur</h3>
             <p>Identité de l'émetteur : non chargée</p>
           </div>
 
           <div className="credential-detail-section">
-            <h3>Cryptographic verification</h3>
+            <h3>Vérification cryptographique</h3>
             <p>
               La signature et le statut devront être vérifiés
               à partir des données réelles du credential.
@@ -68,7 +68,7 @@ export default function CredentialDetails() {
           </div>
 
           <div className="credential-detail-section">
-            <h3>Lifecycle</h3>
+            <h3>Cycle de vie</h3>
             <p>
               Les opérations disponibles dépendront du statut réel
               et des permissions de l'émetteur.

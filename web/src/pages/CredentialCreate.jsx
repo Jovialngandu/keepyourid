@@ -118,7 +118,7 @@ export default function CredentialCreate() {
           ← Retour
         </button>
 
-        <p className="eyebrow">ISSUER PORTAL</p>
+        <p className="eyebrow">PORTAIL ÉMETTEUR</p>
         <h1>Délivrer une identité</h1>
         <p>
           Enregistrez les informations du titulaire et préparez
